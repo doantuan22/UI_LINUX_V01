@@ -1,0 +1,5 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/linux-system-assistant/.venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}/linux-system-assistant/src"],
+  "python.analysis.diagnosticMode": "workspace"
+}

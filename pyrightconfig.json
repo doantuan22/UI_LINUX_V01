@@ -1,0 +1,7 @@
+{
+  "venvPath": "linux-system-assistant",
+  "venv": ".venv",
+  "extraPaths": ["linux-system-assistant/src"],
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "basic"
+}

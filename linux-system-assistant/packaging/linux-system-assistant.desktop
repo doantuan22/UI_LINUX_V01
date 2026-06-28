@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Linux System Assistant
+Comment=Floating system monitor and control widget
+Exec=run.sh
+Icon=utilities-system-monitor
+Terminal=false
+Categories=Utility;System;
+StartupNotify=false

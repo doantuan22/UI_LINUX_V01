@@ -1,0 +1,10 @@
+module components
+GlassPanel 1.0 GlassPanel.qml
+GlassCard 1.0 GlassCard.qml
+CircularGauge 1.0 CircularGauge.qml
+StatCard 1.0 StatCard.qml
+NetworkCard 1.0 NetworkCard.qml
+PowerModeButton 1.0 PowerModeButton.qml
+ProcessRow 1.0 ProcessRow.qml
+SystemActionButton 1.0 SystemActionButton.qml
+ConfirmDialog 1.0 ConfirmDialog.qml
