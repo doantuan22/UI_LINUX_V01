@@ -72,3 +72,27 @@ performance:
   description: "Chuyển sang chế độ hiệu năng cao"
   category: "performance"
   confirm: false
+
+power_profile_get:
+  command: ["powerprofilesctl", "get"]
+  sudo: false
+  timeout_sec: 5
+  description: "Lấy chế độ điện năng hiện tại"
+  category: "read"
+  confirm: false
+
+power_profile_list:
+  command: ["powerprofilesctl", "list"]
+  sudo: false
+  timeout_sec: 5
+  description: "Lấy danh sách chế độ điện năng hỗ trợ"
+  category: "read"
+  confirm: false
+
+nvidia_smi:
+  command: ["nvidia-smi", "--query-gpu=utilization.gpu,temperature.gpu,name", "--format=csv,noheader,nounits"]
+  sudo: false
+  timeout_sec: 5
+  description: "Đọc thông số GPU NVIDIA"
+  category: "read"
+  confirm: false

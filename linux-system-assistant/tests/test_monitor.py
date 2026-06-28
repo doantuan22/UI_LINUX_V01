@@ -23,10 +23,17 @@ def test_disk_info_keys():
     assert info["total_gb"] > 0
 
 
-def test_monitor_collect_all():
+from unittest.mock import patch, MagicMock
+
+@patch("sys_assistant.core.gpu.CommandManager.run_action")
+def test_monitor_collect_all(mock_run):
+    mock_run.return_value = MagicMock(ok=False)
     monitor = SystemMonitor()
     stats = monitor.collect_all()
+    assert isinstance(stats, dict)
+    
     assert "cpu" in stats
     assert "ram" in stats
     assert "disk" in stats
     assert "network" in stats
+    assert "gpu" in stats

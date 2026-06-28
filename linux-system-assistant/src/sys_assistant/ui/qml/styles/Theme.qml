@@ -3,10 +3,10 @@ import QtQuick
 
 QtObject {
     readonly property color background: "#050B14"
-    readonly property color glassPanel: Qt.rgba(0.07, 0.11, 0.18, 0.62)
-    readonly property color glassCard: Qt.rgba(1, 1, 1, 0.06)
-    readonly property color glassCardHover: Qt.rgba(1, 1, 1, 0.10)
-    readonly property color border: Qt.rgba(1, 1, 1, 0.12)
+    readonly property color glassPanel: Qt.rgba(0.07, 0.11, 0.18, 0.88)
+    readonly property color glassCard: Qt.rgba(1, 1, 1, 0.12)
+    readonly property color glassCardHover: Qt.rgba(1, 1, 1, 0.20)
+    readonly property color border: Qt.rgba(1, 1, 1, 0.25)
     readonly property color textPrimary: "#FFFFFF"
     readonly property color textSecondary: "#AEB9C8"
     readonly property color textMuted: "#718096"

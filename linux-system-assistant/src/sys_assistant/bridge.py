@@ -38,14 +38,21 @@ class SysAssistantBridge(QObject):
         )
         self._polling.statsUpdated.connect(self._on_stats_polled)
 
-        profile = self.performance_manager.get_current_profile()
-        self.monitor.set_power_profile(profile)
+        self._poll_count = 0
+        self._cached_power_profile = self.performance_manager.get_current_profile()
+        self.monitor.set_power_profile(self._cached_power_profile)
 
     def start_polling(self) -> None:
         self._polling.start()
 
     def _on_stats_polled(self, stats: dict) -> None:
-        stats["power_profile"] = self.performance_manager.get_current_profile()
+        self._poll_count += 1
+        # Only poll power profile every 10 seconds to save resources
+        if self._poll_count >= 10:
+            self._cached_power_profile = self.performance_manager.get_current_profile()
+            self._poll_count = 0
+            
+        stats["power_profile"] = self._cached_power_profile
         self._stats = stats
         self.statsUpdated.emit(stats)
 
@@ -127,14 +134,26 @@ class SysAssistantBridge(QObject):
 
     @Slot(str, "QVariant", result="QVariant")
     def updateSetting(self, key: str, value):
+        ALLOWED_SETTINGS = {
+            "autostart", "update_interval_ms", "floating_icon", "theme",
+            "show_temperature", "show_network_speed", "safe_mode_process_kill"
+        }
+        if key not in ALLOWED_SETTINGS:
+            return {"ok": False, "message": f"Cài đặt '{key}' không được phép thay đổi."}
+
         if key == "autostart":
             result = self.autostart.enable() if value else self.autostart.disable()
-            self.config.set("autostart", bool(value))
+            if result.get("ok"):
+                self.config.set("autostart", bool(value))
             self.actionCompleted.emit("update_setting", {"ok": True, "key": key, "value": value})
             return result
 
         if key == "update_interval_ms":
-            self._polling.set_interval(int(value))
+            interval = int(value)
+            interval = max(500, min(10000, interval))  # Validate range
+            self._polling.set_interval(interval)
+            self.config.set(key, interval)
+            return {"ok": True, "message": f"Update interval set to {interval}ms."}
 
         if key == "floating_icon":
             current = self.config.get("floating_icon", {})
@@ -145,6 +164,18 @@ class SysAssistantBridge(QObject):
 
         self.config.set(key, value)
         return {"ok": True, "message": f"Đã cập nhật {key}."}
+
+    @Slot(result="QVariant")
+    def resetSettings(self):
+        """Reset all settings to defaults."""
+        from sys_assistant.config.app_config import DEFAULT_CONFIG
+        from copy import deepcopy
+
+        self.config._data = deepcopy(DEFAULT_CONFIG)
+        self.config.save()
+        self._polling.set_interval(int(DEFAULT_CONFIG.get("update_interval_ms", 1000)))
+        self.logger.log_action("reset_settings", "All settings reset to defaults")
+        return {"ok": True, "message": "Đã khôi phục cài đặt mặc định."}
 
     @Slot(int, int)
     def saveIconPosition(self, x: int, y: int):

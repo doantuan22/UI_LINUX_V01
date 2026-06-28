@@ -10,4 +10,5 @@ if [[ ! -d "$VENV" ]]; then
 fi
 
 export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+export QT_QPA_PLATFORM=xcb
 exec "$VENV/bin/python" -m sys_assistant.main "$@"

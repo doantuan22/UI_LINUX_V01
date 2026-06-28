@@ -38,29 +38,46 @@ class CleanupManager:
             return {"ok": True, "message": "Không có thumbnail cache để xóa.", "freed_bytes": 0}
 
         size_info = self.get_thumbnail_cache_size()
-        freed = size_info.get("bytes", 0)
+        freed_bytes = size_info.get("bytes", 0)
 
         try:
-            shutil.rmtree(path)
-            path.mkdir(parents=True, exist_ok=True)
-            self.logger.log_action("clean_thumbnail_cache", f"freed={freed}")
+            # Delete children instead of the parent directory to prevent race condition symlink escapes
+            for child in path.iterdir():
+                if child.is_symlink() or child.is_file():
+                    child.unlink()
+                elif child.is_dir():
+                    shutil.rmtree(child)
+            
+            freed_human = self._human_size(freed_bytes)
+            self.logger.log_action("clean_thumbnail_cache", f"freed={freed_bytes}")
             return {
                 "ok": True,
-                "message": f"Đã xóa thumbnail cache ({size_info.get('human', '0 B')}).",
-                "freed_bytes": freed,
+                "message": f"Đã xóa thumbnail cache ({freed_human}).",
+                "freed_bytes": freed_bytes,
             }
         except OSError as exc:
             return {"ok": False, "message": f"Không thể xóa cache: {exc}"}
 
     def _resolve_allowed_path(self) -> Path | None:
+        target = THUMBNAIL_CACHE
+        if target.is_symlink():
+            return None
+            
+        target = target.resolve()
         home = Path.home().resolve()
-        target = THUMBNAIL_CACHE.resolve()
+        
         try:
             target.relative_to(home)
         except ValueError:
             return None
+            
         if target.name != "thumbnails":
             return None
+            
+        # Ensure the parent is strictly .cache
+        if target.parent.name != ".cache":
+            return None
+            
         return target
 
     @staticmethod

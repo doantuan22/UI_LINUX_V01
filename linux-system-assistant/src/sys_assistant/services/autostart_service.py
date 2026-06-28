@@ -22,6 +22,9 @@ class AutostartService:
 
     def enable(self) -> dict:
         self.autostart_dir.mkdir(parents=True, exist_ok=True)
+        if self.desktop_path.is_symlink():
+            return {"ok": False, "message": "Không thể bật autostart vì file đích là symlink (rủi ro bảo mật)."}
+            
         content = DESKTOP_TEMPLATE.format(exec_path=self.exec_path)
         self.desktop_path.write_text(content, encoding="utf-8")
         return {"ok": True, "message": "Autostart đã bật.", "path": str(self.desktop_path)}

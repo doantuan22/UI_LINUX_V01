@@ -1,14 +1,10 @@
 import QtQuick
 import QtQuick.Controls
 
-Item {
-    id: root
-
-    FloatingIcon {
-        id: floatingIcon
-        bridge: sysBridge
-        dashboard: dashboard
-    }
+FloatingIcon {
+    id: floatingIcon
+    bridge: sysBridge
+    dashboard: dashboard
 
     DashboardWindow {
         id: dashboard

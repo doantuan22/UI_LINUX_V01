@@ -17,13 +17,13 @@ Tạo phiên bản chạy được trên Linux/Kubuntu với:
 
 ### Tasks
 
-- [ ] Tạo cấu trúc thư mục chuẩn.
-- [ ] Tạo virtual environment.
-- [ ] Tạo `requirements.txt`.
-- [ ] Tạo `main.py`.
-- [ ] Tạo `app.py`.
-- [ ] Tạo QML engine.
-- [ ] Load `Main.qml` thành công.
+- [x] Tạo cấu trúc thư mục chuẩn.
+- [x] Tạo virtual environment.
+- [x] Tạo `requirements.txt`.
+- [x] Tạo `main.py`.
+- [x] Tạo `app.py`.
+- [x] Tạo QML engine.
+- [x] Load `Main.qml` thành công.
 
 ### Acceptance
 
@@ -34,13 +34,13 @@ Tạo phiên bản chạy được trên Linux/Kubuntu với:
 
 ### Tasks
 
-- [ ] Tạo `FloatingIcon.qml`.
-- [ ] Tạo `DashboardWindow.qml`.
-- [ ] Tạo `GlassPanel.qml`.
-- [ ] Tạo `StatCard.qml`.
-- [ ] Tạo `CircularGauge.qml`.
-- [ ] Tạo layout giống concept UI.
-- [ ] Dùng fake data cho CPU/RAM/GPU/Disk/Temp.
+- [x] Tạo `FloatingIcon.qml`.
+- [x] Tạo `DashboardWindow.qml`.
+- [x] Tạo `GlassPanel.qml`.
+- [x] Tạo `StatCard.qml`.
+- [x] Tạo `CircularGauge.qml`.
+- [x] Tạo layout giống concept UI.
+- [x] Dùng fake data cho CPU/RAM/GPU/Disk/Temp.
 
 ### Acceptance
 
@@ -53,14 +53,14 @@ Tạo phiên bản chạy được trên Linux/Kubuntu với:
 
 ### Tasks
 
-- [ ] Viết `core/cpu.py`.
-- [ ] Viết `core/memory.py`.
-- [ ] Viết `core/disk.py`.
-- [ ] Viết `core/network.py`.
-- [ ] Viết `core/temperature.py`.
-- [ ] Viết `core/monitor.py` gom toàn bộ stats.
-- [ ] Viết `PollingService` update mỗi 1000ms.
-- [ ] Bridge emit stats sang QML.
+- [x] Viết `core/cpu.py`.
+- [x] Viết `core/memory.py`.
+- [x] Viết `core/disk.py`.
+- [x] Viết `core/network.py`.
+- [x] Viết `core/temperature.py`.
+- [x] Viết `core/monitor.py` gom toàn bộ stats.
+- [x] Viết `PollingService` update mỗi 1000ms.
+- [x] Bridge emit stats sang QML.
 
 ### Acceptance
 
@@ -73,13 +73,13 @@ Tạo phiên bản chạy được trên Linux/Kubuntu với:
 
 ### Tasks
 
-- [ ] Viết `process_manager.py`.
-- [ ] Lấy top process theo RAM/CPU.
-- [ ] Tạo `ProcessWindow.qml`.
-- [ ] Tạo `ProcessRow.qml`.
-- [ ] Thêm confirm dialog khi kill.
-- [ ] Chặn protected process.
-- [ ] Chỉ kill process của user hiện tại.
+- [x] Viết `process_manager.py`.
+- [x] Lấy top process theo RAM/CPU.
+- [x] Tạo `ProcessWindow.qml`.
+- [x] Tạo `ProcessRow.qml`.
+- [x] Thêm confirm dialog khi kill.
+- [x] Chặn protected process.
+- [x] Chỉ kill process của user hiện tại.
 
 ### Acceptance
 
@@ -92,12 +92,12 @@ Tạo phiên bản chạy được trên Linux/Kubuntu với:
 
 ### Tasks
 
-- [ ] Viết `performance_manager.py`.
-- [ ] Detect `powerprofilesctl`.
-- [ ] Lấy profile hiện tại.
-- [ ] List profile khả dụng.
-- [ ] Set power-saver/balanced/performance.
-- [ ] Update UI theo profile hiện tại.
+- [x] Viết `performance_manager.py`.
+- [x] Detect `powerprofilesctl`.
+- [x] Lấy profile hiện tại.
+- [x] List profile khả dụng.
+- [x] Set power-saver/balanced/performance.
+- [x] Update UI theo profile hiện tại.
 
 ### Acceptance
 
@@ -109,11 +109,11 @@ Tạo phiên bản chạy được trên Linux/Kubuntu với:
 
 ### Tasks
 
-- [ ] Tạo `safe_commands.yaml`.
-- [ ] Viết `command_manager.py`.
-- [ ] Viết `health_checker.py`.
-- [ ] Thêm nút Check System.
-- [ ] Hiển thị kết quả summary.
+- [x] Tạo `safe_commands.yaml`.
+- [x] Viết `command_manager.py`.
+- [x] Viết `health_checker.py`.
+- [x] Thêm nút Check System.
+- [x] Hiển thị kết quả summary.
 
 ### Acceptance
 
@@ -126,11 +126,11 @@ Tạo phiên bản chạy được trên Linux/Kubuntu với:
 
 ### Tasks
 
-- [ ] Viết `cleanup_manager.py`.
-- [ ] Tính size thumbnail cache.
-- [ ] Thêm confirm dialog.
-- [ ] Xóa thumbnail cache.
-- [ ] Trả kết quả xóa được bao nhiêu.
+- [x] Viết `cleanup_manager.py`.
+- [x] Tính size thumbnail cache.
+- [x] Thêm confirm dialog.
+- [x] Xóa thumbnail cache.
+- [x] Trả kết quả xóa được bao nhiêu.
 
 ### Acceptance
 
@@ -142,11 +142,11 @@ Tạo phiên bản chạy được trên Linux/Kubuntu với:
 
 ### Tasks
 
-- [ ] Tạo config file trong `~/.config/linux-system-assistant/config.json`.
-- [ ] Lưu vị trí floating icon.
-- [ ] Toggle autostart.
-- [ ] Tạo `.desktop` file trong `~/.config/autostart`.
-- [ ] Settings UI.
+- [x] Tạo config file trong `~/.config/linux-system-assistant/config.json`.
+- [x] Lưu vị trí floating icon.
+- [x] Toggle autostart.
+- [x] Tạo `.desktop` file trong `~/.config/autostart`.
+- [x] Settings UI.
 
 ### Acceptance
 
@@ -158,11 +158,11 @@ Tạo phiên bản chạy được trên Linux/Kubuntu với:
 
 ### Tasks
 
-- [ ] Tạo `run.sh`.
-- [ ] Tạo `.desktop` file.
-- [ ] Test chạy bằng venv.
-- [ ] Build bằng PyInstaller hoặc Nuitka.
-- [ ] Viết hướng dẫn cài/gỡ.
+- [x] Tạo `run.sh`.
+- [x] Tạo `.desktop` file.
+- [x] Test chạy bằng venv.
+- [x] Build bằng PyInstaller hoặc Nuitka.
+- [x] Viết hướng dẫn cài/gỡ.
 
 ### Acceptance
 

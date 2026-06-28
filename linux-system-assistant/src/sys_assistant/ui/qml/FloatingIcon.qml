@@ -14,6 +14,7 @@ Window {
     height: Metrics.iconSize
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
     color: "transparent"
+    visible: true
 
     property bool _ready: false
 
@@ -24,8 +25,7 @@ Window {
         _ready = true
     }
 
-    onXChanged: savePosition()
-    onYChanged: savePosition()
+    // Removed continuous save on X/Y changed for performance
 
     function savePosition() {
         if (_ready)
@@ -39,6 +39,7 @@ Window {
     GlassPanel {
         anchors.fill: parent
         radiusSize: Metrics.iconSize / 2
+        opacity: dragging ? 0.8 : 1.0
 
         Rectangle {
             anchors.centerIn: parent
@@ -89,6 +90,7 @@ Window {
         }
 
         onReleased: function(mouse) {
+            savePosition()
             if (mouse.button === Qt.LeftButton && !dragging && dashboard)
                 dashboard.togglePanel()
         }

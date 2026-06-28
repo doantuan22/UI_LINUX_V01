@@ -3,8 +3,8 @@ import QtQuick
 
 QtObject {
     readonly property int iconSize: 56
-    readonly property int dashboardWidth: 580
-    readonly property int dashboardHeight: 760
+    readonly property int dashboardWidth: 960
+    readonly property int dashboardHeight: 700
     readonly property int cardRadius: 20
     readonly property int panelRadius: 24
     readonly property int statCardSize: 150

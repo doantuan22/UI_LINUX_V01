@@ -45,6 +45,9 @@ class PermissionManager:
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             return {"ok": False, "message": "Không thể xác định owner của process."}
 
+        if owner == "root":
+            return {"ok": False, "message": "Nghiêm cấm can thiệp tiến trình của root."}
+
         if owner != self.current_user:
             return {"ok": False, "message": "Chỉ được kill process của user hiện tại."}
 

@@ -34,9 +34,40 @@ GlassPanel {
             Text { text: "Autostart"; color: Theme.textSecondary; Layout.fillWidth: true }
             Switch {
                 id: autostartSwitch
-                onToggled: sysBridge.updateSetting("autostart", checked)
+                property bool suppressToggle: false
+                
+                onToggled: {
+                    if (suppressToggle) return;
+                    
+                    if (checked) {
+                        suppressToggle = true;
+                        checked = false; // revert temporarily
+                        suppressToggle = false;
+                        autostartConfirm.open();
+                    } else {
+                        sysBridge.updateSetting("autostart", false);
+                    }
+                }
             }
         }
+
+    components.ConfirmDialog {
+        id: autostartConfirm
+        title: "Xác nhận Autostart"
+        message: "Cho phép ứng dụng tự khởi động cùng hệ thống?\n(Hệ thống sẽ ghi file vào ~/.config/autostart)"
+        onConfirmed: {
+            autostartSwitch.suppressToggle = true;
+            autostartSwitch.checked = true;
+            autostartSwitch.suppressToggle = false;
+            sysBridge.updateSetting("autostart", true);
+        }
+        onCancelled: {
+            autostartSwitch.suppressToggle = true;
+            autostartSwitch.checked = false;
+            autostartSwitch.suppressToggle = false;
+            sysBridge.updateSetting("autostart", false);
+        }
+    }
 
         RowLayout {
             Layout.fillWidth: true

@@ -28,46 +28,22 @@ class PerformanceManager:
         return shutil.which("powerprofilesctl") is not None
 
     def get_current_profile(self) -> str:
-        try:
-            import subprocess
-
-            completed = subprocess.run(
-                ["powerprofilesctl", "get"],
-                shell=False,
-                capture_output=True,
-                text=True,
-                timeout=5,
-                check=False,
-            )
-            if completed.returncode == 0:
-                return completed.stdout.strip() or "unknown"
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            pass
+        result = self.commands.run_action("power_profile_get")
+        if result.ok and result.stdout.strip():
+            return result.stdout.strip()
         return "unknown"
 
     def list_profiles(self) -> list[str]:
-        try:
-            import subprocess
-
-            completed = subprocess.run(
-                ["powerprofilesctl", "list"],
-                shell=False,
-                capture_output=True,
-                text=True,
-                timeout=5,
-                check=False,
-            )
-            if completed.returncode != 0:
-                return []
-
-            profiles: list[str] = []
-            for line in completed.stdout.splitlines():
-                match = re.search(r"(\S+):\s*$", line.strip())
-                if match:
-                    profiles.append(match.group(1))
-            return profiles
-        except (FileNotFoundError, subprocess.TimeoutExpired):
+        result = self.commands.run_action("power_profile_list")
+        if not result.ok:
             return []
+
+        profiles: list[str] = []
+        for line in result.stdout.splitlines():
+            match = re.search(r"(\S+):\s*$", line.strip())
+            if match:
+                profiles.append(match.group(1))
+        return profiles
 
     def set_profile(self, profile: str) -> dict[str, Any]:
         action_key = PROFILE_ACTIONS.get(profile)

@@ -10,8 +10,9 @@ Window {
 
     property var bridge: sysBridge
     property point anchorPoint: Qt.point(100, 100)
-    property bool processesVisible: false
-    property bool settingsVisible: false
+    
+    // UI state
+    property string activePanel: "tools" // "tools", "processes", "settings"
 
     width: Metrics.dashboardWidth
     height: Metrics.dashboardHeight
@@ -29,12 +30,10 @@ Window {
         visible = true
         panelOpacity = 1
         panelScale = 1
-        refreshProcesses()
+        if (activePanel === "processes") refreshProcesses()
     }
 
     function closePanel() {
-        processesVisible = false
-        settingsVisible = false
         panelOpacity = 0
         panelScale = 0.96
         visible = false
@@ -46,8 +45,8 @@ Window {
     }
 
     function refreshProcesses() {
-        if (processesVisible)
-            processList.model = bridge.getTopProcesses()
+        if (activePanel === "processes")
+            bridge.getTopProcesses()
     }
 
     Connections {
@@ -56,7 +55,7 @@ Window {
             dashboard.applyStats(stats)
         }
         function onProcessesUpdated(list) {
-            processList.model = list
+            processPanelComponent.processModel = list
         }
     }
 
@@ -64,12 +63,26 @@ Window {
         if (!stats) return
         cpuCard.value = stats.cpu ? Math.round(stats.cpu.usage || 0) : 0
         cpuCard.subValue = stats.cpu && stats.cpu.freq_ghz ? stats.cpu.freq_ghz + " GHz" : "N/A"
-        gpuCard.value = stats.gpu && stats.gpu.available ? Math.round(stats.gpu.usage || 0) : 0
-        gpuCard.subValue = stats.gpu ? stats.gpu.name : "unavailable"
+
+        // GPU: distinguish available / unsupported / unavailable
+        var gpuStatus = stats.gpu ? (stats.gpu.status || "unavailable") : "unavailable"
+        if (gpuStatus === "available") {
+            gpuCard.value = Math.round(stats.gpu.usage || 0)
+            gpuCard.subValue = stats.gpu.name
+        } else if (gpuStatus === "unsupported") {
+            gpuCard.value = 0
+            gpuCard.subValue = stats.gpu.name + " (unsupported)"
+        } else {
+            gpuCard.value = 0
+            gpuCard.subValue = "unavailable"
+        }
+
         ramCard.value = stats.ram ? Math.round(stats.ram.usage || 0) : 0
         ramCard.subValue = stats.ram ? stats.ram.used_gb + " / " + stats.ram.total_gb + " GB" : ""
+
         diskCard.value = stats.disk ? Math.round(stats.disk.usage || 0) : 0
         diskCard.subValue = stats.disk ? stats.disk.used_gb + " / " + stats.disk.total_gb + " GB" : ""
+
         tempCard.value = stats.cpu && stats.cpu.temp !== null && stats.cpu.temp !== undefined ? Math.min(Math.round(stats.cpu.temp), 100) : 0
         tempCard.subValue = stats.cpu && stats.cpu.temp !== null && stats.cpu.temp !== undefined ? stats.cpu.temp + " °C" : "N/A"
         fanCard.value = stats.fan && stats.fan.speed_rpm ? Math.min(Math.round(stats.fan.speed_rpm / 50), 100) : 0
@@ -98,180 +111,187 @@ Window {
 
         Behavior on opacity { NumberAnimation { duration: 200 } }
 
-        ColumnLayout {
+        RowLayout {
             anchors.fill: parent
             anchors.margins: Metrics.padding
             spacing: Metrics.gap
 
-            RowLayout {
-                Layout.fillWidth: true
-                Text {
-                    text: "Linux System Assistant"
-                    color: Theme.textPrimary
-                    font.pixelSize: 18
-                    font.bold: true
-                    Layout.fillWidth: true
-                }
-                SystemActionButton {
-                    label: "Close"
-                    iconGlyph: "✕"
-                    Layout.preferredWidth: 90
-                    onClicked: dashboard.closePanel()
-                }
-            }
-
-            Text {
-                text: "System Overview"
-                color: Theme.textSecondary
-                font.pixelSize: 12
-            }
-
-            GridLayout {
-                Layout.fillWidth: true
-                columns: 3
-                rowSpacing: Metrics.gap
-                columnSpacing: Metrics.gap
-
-                StatCard { id: cpuCard; title: "CPU"; accentColor: Theme.cpuAccent }
-                StatCard { id: gpuCard; title: "GPU"; accentColor: Theme.gpuAccent }
-                StatCard { id: ramCard; title: "RAM"; accentColor: Theme.ramAccent }
-                StatCard { id: diskCard; title: "Disk"; accentColor: Theme.diskAccent }
-                StatCard { id: tempCard; title: "Temp"; accentColor: Theme.tempAccent }
-                StatCard { id: fanCard; title: "Fan"; accentColor: Theme.fanAccent }
-            }
-
-            NetworkCard {
-                id: networkCard
-                Layout.fillWidth: true
-            }
-
-            Text {
-                text: "Performance Mode"
-                color: Theme.textSecondary
-                font.pixelSize: 12
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
-                PowerModeButton {
-                    id: saverBtn
-                    Layout.fillWidth: true
-                    label: "Power Saver"
-                    onClicked: bridge.setPowerProfile("power-saver")
-                }
-                PowerModeButton {
-                    id: balancedBtn
-                    Layout.fillWidth: true
-                    label: "Balanced"
-                    onClicked: bridge.setPowerProfile("balanced")
-                }
-                PowerModeButton {
-                    id: perfBtn
-                    Layout.fillWidth: true
-                    label: "Performance"
-                    onClicked: bridge.setPowerProfile("performance")
-                }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
-                SystemActionButton {
-                    Layout.fillWidth: true
-                    label: "Check System"
-                    iconGlyph: "✓"
-                    onClicked: {
-                        var result = bridge.runSystemCheck()
-                        checkResultPopup.text = JSON.stringify(result, null, 2)
-                        checkResultPopup.open()
-                    }
-                }
-                SystemActionButton {
-                    Layout.fillWidth: true
-                    label: "Clean Cache"
-                    iconGlyph: "🗑"
-                    onClicked: cleanCacheDialog.open()
-                }
-                SystemActionButton {
-                    Layout.fillWidth: true
-                    label: "Processes"
-                    iconGlyph: "☰"
-                    onClicked: {
-                        processesVisible = !processesVisible
-                        settingsVisible = false
-                        if (processesVisible) refreshProcesses()
-                    }
-                }
-                SystemActionButton {
-                    Layout.fillWidth: true
-                    label: "Settings"
-                    iconGlyph: "⚙"
-                    onClicked: {
-                        settingsVisible = !settingsVisible
-                        processesVisible = false
-                        settingsPanel.loadSettings()
-                    }
-                }
-            }
-
-            GlassPanel {
-                Layout.fillWidth: true
+            // Left Side: Main Monitor
+            ColumnLayout {
+                Layout.minimumWidth: 480
+                Layout.maximumWidth: 480
+                Layout.preferredWidth: 480
                 Layout.fillHeight: true
-                visible: processesVisible
-                radiusSize: Metrics.cardRadius
+                spacing: Metrics.gap
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: 10
-                    spacing: 8
+                // Header
+                RowLayout {
+                    Layout.fillWidth: true
+                    
+                    Text {
+                        text: "⚡"
+                        font.pixelSize: 28
+                        color: Theme.cpuAccent
+                    }
+                    
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        Text {
+                            text: "System Assistant"
+                            color: Theme.textPrimary
+                            font.pixelSize: 20
+                            font.bold: true
+                        }
+                        Text {
+                            text: "Monitor • Optimize • Protect"
+                            color: Theme.textSecondary
+                            font.pixelSize: 12
+                        }
+                    }
 
                     RowLayout {
-                        Layout.fillWidth: true
-                        Text {
-                            text: "Top Processes"
-                            color: Theme.textPrimary
-                            font.pixelSize: 14
-                            Layout.fillWidth: true
-                        }
+                        Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                        spacing: 8
+                        
                         SystemActionButton {
-                            label: "Refresh"
-                            iconGlyph: "↻"
-                            Layout.preferredWidth: 100
-                            onClicked: dashboard.refreshProcesses()
+                            label: "Hide"
+                            iconGlyph: "✕"
+                            Layout.preferredWidth: 80
+                            onClicked: dashboard.closePanel()
+                        }
+                        
+                        SystemActionButton {
+                            label: "Quit"
+                            iconGlyph: "⏻"
+                            Layout.preferredWidth: 80
+                            onClicked: Qt.quit()
                         }
                     }
+                }
 
-                    ListView {
-                        id: processList
+                // Grid Stats
+                GridLayout {
+                    Layout.fillWidth: true
+                    columns: 3
+                    rowSpacing: Metrics.gap
+                    columnSpacing: Metrics.gap
+
+                    StatCard { id: cpuCard; title: "CPU"; accentColor: Theme.cpuAccent }
+                    StatCard { id: gpuCard; title: "GPU"; accentColor: Theme.gpuAccent }
+                    StatCard { id: ramCard; title: "RAM"; accentColor: Theme.ramAccent }
+                    StatCard { id: diskCard; title: "Disk"; accentColor: Theme.diskAccent }
+                    StatCard { id: tempCard; title: "Temp"; accentColor: Theme.tempAccent }
+                    StatCard { id: fanCard; title: "Fan"; accentColor: Theme.fanAccent }
+                }
+
+                NetworkCard {
+                    id: networkCard
+                    Layout.fillWidth: true
+                }
+
+                // Power Profiles
+                Text {
+                    text: "Performance Mode"
+                    color: Theme.textSecondary
+                    font.pixelSize: 12
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    PowerModeButton {
+                        id: saverBtn
                         Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        clip: true
-                        spacing: 6
-                        delegate: ProcessRow {
-                            width: processList.width
-                            processName: modelData.name
-                            pid: modelData.pid
-                            cpuPercent: modelData.cpu
-                            memoryMb: modelData.memory_mb
-                            onKillRequested: function(pid) {
-                                killDialog.pidToKill = pid
-                                killDialog.forceKill = false
-                                killDialog.open()
-                            }
+                        label: "Power Saver"
+                        onClicked: bridge.setPowerProfile("power-saver")
+                    }
+                    PowerModeButton {
+                        id: balancedBtn
+                        Layout.fillWidth: true
+                        label: "Balanced"
+                        onClicked: bridge.setPowerProfile("balanced")
+                    }
+                    PowerModeButton {
+                        id: perfBtn
+                        Layout.fillWidth: true
+                        label: "Performance"
+                        onClicked: bridge.setPowerProfile("performance")
+                    }
+                }
+
+                Item { Layout.fillHeight: true } // spacer
+            }
+
+            // Right Side: Sidebar Tools
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: Metrics.gap
+
+                // Tab selectors
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    
+                    SystemActionButton {
+                        Layout.fillWidth: true
+                        label: "Tools"
+                        iconGlyph: "🔧"
+                        opacity: activePanel === "tools" ? 1.0 : 0.6
+                        onClicked: activePanel = "tools"
+                    }
+                    SystemActionButton {
+                        Layout.fillWidth: true
+                        label: "Processes"
+                        iconGlyph: "☰"
+                        opacity: activePanel === "processes" ? 1.0 : 0.6
+                        onClicked: {
+                            activePanel = "processes"
+                            refreshProcesses()
+                        }
+                    }
+                    SystemActionButton {
+                        Layout.fillWidth: true
+                        label: "Settings"
+                        iconGlyph: "⚙"
+                        opacity: activePanel === "settings" ? 1.0 : 0.6
+                        onClicked: activePanel = "settings"
+                    }
+                }
+
+                // StackView equivalent using simple visibility
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+
+                    SystemToolsPanel {
+                        id: toolsPanelComponent
+                        anchors.fill: parent
+                        visible: activePanel === "tools"
+                        bridge: sysBridge
+                        checkPopup: checkResultPopup
+                        cleanPopup: cleanCacheDialog
+                    }
+
+                    ProcessPanel {
+                        id: processPanelComponent
+                        anchors.fill: parent
+                        visible: activePanel === "processes"
+                        bridge: sysBridge
+                        killDialog: killDialog
+                    }
+
+                    SettingsPanel {
+                        id: settingsPanelComponent
+                        anchors.fill: parent
+                        visible: activePanel === "settings"
+                        onVisibleChanged: {
+                            if (visible) loadSettings()
                         }
                     }
                 }
             }
-
-            SettingsPanel {
-                id: settingsPanel
-                Layout.fillWidth: true
-                Layout.preferredHeight: settingsVisible ? 180 : 0
-                visible: settingsVisible
-            }
-
-            Item { Layout.fillHeight: true }
         }
     }
 

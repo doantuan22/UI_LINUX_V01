@@ -18,8 +18,9 @@ class ProcessManager:
     ) -> None:
         self.permission = permission_manager or PermissionManager()
         self.logger = logger or LoggerService()
+        self._pending_kills: dict[int, float] = {}
 
-    def get_top_processes(self, limit: int = 15) -> list[dict[str, Any]]:
+    def get_top_processes(self, limit: int = 15, sort_by: str = "memory") -> list[dict[str, Any]]:
         processes: list[dict[str, Any]] = []
         current_user = self.permission.current_user
 
@@ -28,9 +29,8 @@ class ProcessManager:
                 info = proc.info
                 if info["username"] != current_user:
                     continue
-                if self.permission.is_protected(proc):
-                    continue
 
+                is_protected = self.permission.is_protected(proc)
                 cpu = proc.cpu_percent(interval=0.0)
                 mem_mb = round(info["memory_info"].rss / (1024**2), 1)
                 processes.append(
@@ -39,22 +39,36 @@ class ProcessManager:
                         "name": info["name"],
                         "cpu": round(cpu, 1),
                         "memory_mb": mem_mb,
-                        "protected": False,
+                        "protected": is_protected,
                     }
                 )
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 continue
 
-        processes.sort(key=lambda item: (item["memory_mb"], item["cpu"]), reverse=True)
+        if sort_by == "cpu":
+            processes.sort(key=lambda item: item["cpu"], reverse=True)
+        else:
+            processes.sort(key=lambda item: (item["memory_mb"], item["cpu"]), reverse=True)
         return processes[:limit]
 
     def kill_process(self, pid: int, force: bool = False) -> dict[str, Any]:
+        import time
         check = self.permission.can_kill(pid)
         if not check["ok"]:
             return check
 
         if pid == os.getpid():
             return {"ok": False, "message": "Không thể kill chính app hiện tại."}
+
+        # Enforce SIGTERM before SIGKILL
+        now = time.time()
+        if force:
+            last_sigterm = self._pending_kills.get(pid, 0.0)
+            if now - last_sigterm > 30.0:
+                return {"ok": False, "message": "Phải gửi SIGTERM trước khi có thể Force Kill."}
+            self._pending_kills.pop(pid, None)
+        else:
+            self._pending_kills[pid] = now
 
         try:
             process = psutil.Process(pid)
