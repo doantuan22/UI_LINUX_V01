@@ -29,7 +29,7 @@ GlassPanel {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Metrics.padding
-        spacing: Metrics.gapMedium
+        spacing: 10
 
         RowLayout {
             Layout.fillWidth: true
@@ -38,7 +38,7 @@ GlassPanel {
             PanelHeader {
                 Layout.fillWidth: true
                 title: "Log lỗi"
-                iconText: "!"
+                iconText: "⚠"
                 iconColor: Theme.warning
             }
 
@@ -46,8 +46,7 @@ GlassPanel {
                 label: "Xóa"
                 iconGlyph: "✕"
                 Layout.preferredWidth: 54
-                enabled: root.logModel.length > 0
-                opacity: enabled ? 1.0 : 0.45
+                visible: root.logModel.length > 0
                 onClicked: {
                     if (root.bridge)
                         root.bridge.clearErrorLogs()
@@ -61,27 +60,11 @@ GlassPanel {
             visible: root.logModel.length === 0
             hoverEnabled: false
 
-            ColumnLayout {
+            EmptyState {
                 anchors.fill: parent
                 anchors.margins: 10
-                spacing: 6
-
-                Text {
-                    Layout.fillWidth: true
-                    text: "Không có lỗi"
-                    color: Theme.textPrimary
-                    font.pixelSize: Metrics.fontBody
-                    font.bold: true
-                    elide: Text.ElideRight
-                }
-
-                Text {
-                    Layout.fillWidth: true
-                    text: "Phiên chạy hiện tại chưa ghi nhận lỗi nghiêm trọng."
-                    color: Theme.textSecondary
-                    font.pixelSize: Metrics.fontCaption
-                    wrapMode: Text.WordWrap
-                }
+                title: "Không có lỗi"
+                message: "Đây là log runtime của ứng dụng.\nPhiên chạy hiện tại chưa ghi nhận lỗi\nnghiêm trọng."
             }
         }
 
@@ -107,3 +90,4 @@ GlassPanel {
         }
     }
 }
+

@@ -23,7 +23,7 @@ Window {
 
     width: Math.round(Metrics.dashboardWidth * responsiveScale)
     height: Math.round(Metrics.dashboardHeight * responsiveScale)
-    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
+    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
     visible: false
 
@@ -35,9 +35,12 @@ Window {
 
     function openPanel() {
         visible = true
+        show()
+        raise()
+        requestActivate()
         panelOpacity = 1
         panelScale = 1
-        if (bridge) bridge.getTopProcesses()
+        if (bridge) bridge.requestTopProcesses()
     }
 
     function closePanel() {
@@ -99,13 +102,13 @@ Window {
             Item {
                 id: topRow
                 width: parent.width
-                height: 584
+                height: 597
                 anchors.top: parent.top
                 
                 MainMonitorPanel {
                     id: mainMonitor
-                    width: 448
-                    height: 568
+                    width: 538
+                    height: 597
                     anchors.top: parent.top
                     anchors.left: parent.left
                     bridge: overlay.bridge
@@ -115,8 +118,8 @@ Window {
 
                 SystemToolsPanel {
                     id: sysTools
-                    width: 448
-                    height: 270
+                    width: 467
+                    height: 259
                     anchors.top: parent.top
                     anchors.right: parent.right
                     bridge: overlay.bridge
@@ -124,12 +127,13 @@ Window {
 
                 ProcessPanel {
                     id: processPanel
-                    width: 448
-                    height: 306
+                    width: 467
+                    height: 317
                     anchors.bottom: parent.bottom
                     anchors.right: parent.right
                     bridge: overlay.bridge
                     killDialog: killConfirm
+                    autoRefreshEnabled: overlay.visible
                 }
             }
             
@@ -137,12 +141,12 @@ Window {
             Item {
                 id: bottomRow
                 width: parent.width
-                height: 176
+                height: 190
                 anchors.bottom: parent.bottom
                 
                 NotificationPanel {
                     id: notificationPanel
-                    width: 272
+                    width: 339
                     height: parent.height
                     anchors.left: parent.left
                     bridge: overlay.bridge
@@ -150,14 +154,14 @@ Window {
                 
                 QuickActionsPanel {
                     id: quickActionsPanel
-                    width: 360
+                    width: 336
                     height: parent.height
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
                 
                 MiniSettingsPanel {
                     id: miniSettingsPanel
-                    width: 272
+                    width: 317
                     height: parent.height
                     anchors.right: parent.right
                     bridge: overlay.bridge
@@ -179,9 +183,9 @@ Window {
             if (overlay.bridge) {
                 var result = overlay.bridge.killProcess(pidToKill, forceKill)
                 if (!forceKill) {
-                    Qt.createQmlObject('import QtQuick; Timer { interval: 500; running: true; onTriggered: { if (overlay.bridge.isProcessAlive(killConfirm.pidToKill)) { killConfirm.forceKill = true; killConfirm.open(); } else { overlay.bridge.getTopProcesses(); } this.destroy(); } }', overlay);
+                    Qt.createQmlObject('import QtQuick; Timer { interval: 500; running: true; onTriggered: { if (overlay.bridge.isProcessAlive(killConfirm.pidToKill)) { killConfirm.forceKill = true; killConfirm.open(); } else { overlay.bridge.requestTopProcesses(); } this.destroy(); } }', overlay);
                 } else {
-                    overlay.bridge.getTopProcesses()
+                    overlay.bridge.requestTopProcesses()
                 }
             }
         }

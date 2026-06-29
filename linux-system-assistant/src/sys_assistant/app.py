@@ -4,9 +4,9 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import QUrl
-from PySide6.QtGui import QGuiApplication, QIcon
+from PySide6.QtGui import QIcon
 from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtWidgets import QSystemTrayIcon
+from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
 from sys_assistant.bridge import SysAssistantBridge
 from sys_assistant.services.logger_service import LoggerService
@@ -14,7 +14,7 @@ from sys_assistant.services.notification_service import NotificationService
 
 
 def run() -> int:
-    app = QGuiApplication(sys.argv)
+    app = QApplication(sys.argv)
     app.setApplicationName("Linux System Assistant")
     app.setOrganizationName("linux-system-assistant")
     app.setQuitOnLastWindowClosed(False)

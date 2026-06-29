@@ -8,26 +8,28 @@ GlassCard {
 
     property string title: "Nút"
     property string iconText: "★"
+    property string subtitle: ""
+    property string badgeText: ""
     property color accentColor: Theme.accentBlue
     property bool buttonEnabled: false
 
     signal clicked()
 
     width: 156
-    height: Metrics.quickActionMinHeight
+    height: 117
     hoverEnabled: buttonEnabled
-    opacity: buttonEnabled ? 1.0 : 0.62
+    opacity: buttonEnabled ? 1.0 : 0.82
     clip: true
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 8
+        anchors.margins: 11
         spacing: 6
 
         GlowIcon {
             Layout.alignment: Qt.AlignHCenter
             iconText: root.iconText
-            iconSize: 18
+            iconSize: 27
             color: root.accentColor
             glowEnabled: root.buttonEnabled
         }
@@ -37,10 +39,28 @@ GlassCard {
             Layout.fillWidth: true
             text: root.title
             color: Theme.textPrimary
-            font.pixelSize: Metrics.fontCaption
+            font.pixelSize: 13
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             maximumLineCount: 2
+        }
+
+        Text {
+            visible: root.subtitle.length > 0
+            Layout.fillWidth: true
+            text: root.subtitle
+            color: Theme.textMuted
+            font.pixelSize: 10
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            maximumLineCount: 2
+        }
+
+        AppBadge {
+            visible: root.badgeText.length > 0
+            Layout.alignment: Qt.AlignHCenter
+            text: root.badgeText
+            tone: root.buttonEnabled ? "info" : "disabled"
         }
     }
 
@@ -53,6 +73,6 @@ GlassCard {
     }
 
     ToolTip.visible: mouseArea.containsMouse && !root.buttonEnabled
-    ToolTip.text: root.title
+    ToolTip.text: root.subtitle.length > 0 ? root.subtitle : root.title
     ToolTip.delay: 500
 }

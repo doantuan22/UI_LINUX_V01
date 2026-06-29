@@ -49,6 +49,14 @@ check_sensors:
   category: "read"
   confirm: false
 
+process_snapshot:
+  command: ["ps", "-eo", "pid=,uid=,user=,pcpu=,pmem=,rss=,comm=", "--sort=-pcpu"]
+  sudo: false
+  timeout_sec: 5
+  description: "Lấy snapshot CPU/RAM/icon owner từng tiến trình bằng ps"
+  category: "read"
+  confirm: false
+
 power_saver:
   command: ["powerprofilesctl", "set", "power-saver"]
   sudo: false
@@ -94,5 +102,86 @@ nvidia_smi:
   sudo: false
   timeout_sec: 5
   description: "Đọc thông số GPU NVIDIA"
+  category: "read"
+  confirm: false
+
+# System tools: additional read-only commands
+check_disk_hT:
+  command: ["df", "-hT"]
+  sudo: false
+  timeout_sec: 3
+  description: "Kiểm tra dung lượng ổ đĩa chi tiết"
+  category: "read"
+  confirm: false
+
+check_block_devices_detail:
+  command: ["lsblk", "-o", "NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS,MODEL"]
+  sudo: false
+  timeout_sec: 3
+  description: "Xem thiết bị lưu trữ chi tiết"
+  category: "read"
+  confirm: false
+
+check_memory:
+  command: ["free", "-h"]
+  sudo: false
+  timeout_sec: 3
+  description: "Kiểm tra RAM và Swap"
+  category: "read"
+  confirm: false
+
+check_uptime:
+  command: ["uptime"]
+  sudo: false
+  timeout_sec: 3
+  description: "Xem uptime và tải hệ thống"
+  category: "read"
+  confirm: false
+
+check_failed_services_nopager:
+  command: ["systemctl", "--failed", "--no-pager"]
+  sudo: false
+  timeout_sec: 5
+  description: "Kiểm tra service lỗi (no pager)"
+  category: "read"
+  confirm: false
+
+check_critical_logs_limited:
+  command: ["journalctl", "-p", "3", "-xb", "--no-pager", "-n", "80"]
+  sudo: false
+  timeout_sec: 8
+  description: "Xem log nghiêm trọng (giới hạn 80 dòng)"
+  category: "read"
+  confirm: false
+
+check_pci_nnk:
+  command: ["lspci", "-nnk"]
+  sudo: false
+  timeout_sec: 5
+  description: "Xem PCI devices chi tiết"
+  category: "read"
+  confirm: false
+
+check_network_ip:
+  command: ["ip", "-brief", "addr"]
+  sudo: false
+  timeout_sec: 3
+  description: "Xem địa chỉ IP"
+  category: "read"
+  confirm: false
+
+check_network_route:
+  command: ["ip", "route"]
+  sudo: false
+  timeout_sec: 3
+  description: "Xem routing table"
+  category: "read"
+  confirm: false
+
+nvidia_smi_detailed:
+  command: ["nvidia-smi", "--query-gpu=name,driver_version,utilization.gpu,temperature.gpu,memory.used,memory.total", "--format=csv,noheader,nounits"]
+  sudo: false
+  timeout_sec: 5
+  description: "Đọc thông số GPU NVIDIA chi tiết"
   category: "read"
   confirm: false

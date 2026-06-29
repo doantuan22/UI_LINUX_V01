@@ -6,6 +6,12 @@ FloatingIcon {
     bridge: sysBridge
     dashboard: dashboard
 
+    Component.onCompleted: {
+        var settings = bridge ? bridge.getSettings() : {}
+        if (!settings.start_minimized)
+            Qt.callLater(function() { floatingIcon.showDashboard(false, false) })
+    }
+
     DesktopOverlay {
         id: dashboard
         bridge: sysBridge

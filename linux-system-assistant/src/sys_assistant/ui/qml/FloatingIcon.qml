@@ -12,7 +12,7 @@ Window {
 
     width: Metrics.iconSize
     height: Metrics.iconSize
-    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
+    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
     visible: true
 
@@ -22,23 +22,42 @@ Window {
         var pos = bridge.getIconPosition()
         x = pos.x || 100
         y = pos.y || 100
+        clampToScreen()
         _ready = true
     }
 
     // Removed continuous save on X/Y changed for performance
 
-    function savePosition() {
-        if (_ready)
-            bridge.saveIconPosition(Math.round(x), Math.round(y))
+    function clampToScreen() {
+        var margin = Math.max(8, Metrics.gapSmall)
+        var minX = Screen.virtualX + margin
+        var minY = Screen.virtualY + margin
+        var maxX = Screen.virtualX + Screen.width - width - margin
+        var maxY = Screen.virtualY + Screen.height - height - margin
+        if (maxX < minX)
+            maxX = minX
+        if (maxY < minY)
+            maxY = minY
+        x = Math.max(minX, Math.min(x, maxX))
+        y = Math.max(minY, Math.min(y, maxY))
     }
 
-    function showDashboard() {
+    function savePosition() {
+        if (_ready) {
+            clampToScreen()
+            bridge.saveIconPosition(Math.round(x), Math.round(y))
+        }
+    }
+
+    function showDashboard(saveBeforeOpen, hideIconAfterOpen) {
         if (!dashboard)
             return
-        savePosition()
+        if (saveBeforeOpen !== false)
+            savePosition()
         dashboard.anchorPoint = Qt.point(iconWindow.x, iconWindow.y)
         dashboard.openPanel()
-        iconWindow.visible = false
+        if (hideIconAfterOpen !== false)
+            iconWindow.visible = false
     }
 
     property bool dragging: false
@@ -52,8 +71,8 @@ Window {
         transform: Scale {
             origin.x: iconContent.width / 2
             origin.y: iconContent.height / 2
-            xScale: iconArea.containsMouse && !dragging ? 1.05 : (dragging ? 0.95 : 1.0)
-            yScale: iconArea.containsMouse && !dragging ? 1.05 : (dragging ? 0.95 : 1.0)
+            xScale: mainMouseArea.containsMouse && !dragging ? 1.05 : (dragging ? 0.95 : 1.0)
+            yScale: mainMouseArea.containsMouse && !dragging ? 1.05 : (dragging ? 0.95 : 1.0)
         }
 
         Behavior on transform {
@@ -97,6 +116,7 @@ Window {
     }
 
     MouseArea {
+        id: mainMouseArea
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         hoverEnabled: true
@@ -121,6 +141,7 @@ Window {
             if (dragging) {
                 iconWindow.x = windowStart.x + dx
                 iconWindow.y = windowStart.y + dy
+                iconWindow.clampToScreen()
                 if (dashboard)
                     dashboard.anchorPoint = Qt.point(iconWindow.x, iconWindow.y)
             }
@@ -159,16 +180,8 @@ Window {
 
     ToolTip {
         parent: iconWindow.contentItem
-        visible: iconArea.containsMouse && !dragging
+        visible: mainMouseArea.containsMouse && !dragging
         text: "Linux System Assistant"
         delay: 500
-    }
-
-    MouseArea {
-        id: iconArea
-        anchors.fill: parent
-        hoverEnabled: true
-        acceptedButtons: Qt.NoButton
-        enabled: false
     }
 }

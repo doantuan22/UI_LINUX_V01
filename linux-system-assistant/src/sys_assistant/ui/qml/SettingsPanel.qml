@@ -9,15 +9,6 @@ GlassPanel {
 
     radiusSize: Metrics.cardRadius
     clip: true
-    property bool suppressAutostart: false
-
-    function loadSettings() {
-        var s = sysBridge.getSettings()
-        autostartToggle.checked = !!s.autostart
-        tempToggle.checked = s.show_temperature !== false
-        networkToggle.checked = s.show_network_speed !== false
-        safeModeToggle.checked = s.safe_mode_process_kill !== false
-    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -44,63 +35,52 @@ GlassPanel {
                 width: parent.width
                 spacing: Metrics.gapMedium
 
-                ToggleSetting {
-                    id: autostartToggle
-                    width: parent.width
-                    title: "Khởi động cùng hệ thống"
-                    onToggled: function(checked) {
-                        if (root.suppressAutostart)
-                            return
-                        if (checked) {
-                            root.suppressAutostart = true
-                            autostartToggle.checked = false
-                            root.suppressAutostart = false
-                            autostartConfirm.open()
-                        } else {
-                            sysBridge.updateSetting("autostart", false)
+                Repeater {
+                    model: [
+                        { title: "Khởi động cùng hệ thống", desc: "Tự động mở ứng dụng khi đăng nhập" },
+                        { title: "Hiển thị nhiệt độ", desc: "Tùy biến dữ liệu nhiệt độ trên dashboard" },
+                        { title: "Hiển thị tốc độ mạng", desc: "Tùy biến card network trên dashboard" },
+                        { title: "Chế độ an toàn khi kết thúc tiến trình", desc: "Quy tắc UI/confirm nâng cao cho kill process" }
+                    ]
+                    delegate: GlassCard {
+                        width: parent.width
+                        height: 53
+                        hoverEnabled: false
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 8
+                            spacing: Metrics.gapSmall
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: modelData.title
+                                    color: Theme.textPrimary
+                                    font.pixelSize: Metrics.fontBody
+                                    font.bold: true
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: modelData.desc
+                                    color: Theme.textSecondary
+                                    font.pixelSize: Metrics.fontCaption
+                                    wrapMode: Text.WordWrap
+                                    maximumLineCount: 2
+                                }
+                            }
+
+                            AppBadge {
+                                text: "Đang phát triển"
+                                tone: "disabled"
+                            }
                         }
                     }
                 }
-
-                ToggleSetting {
-                    id: tempToggle
-                    width: parent.width
-                    title: "Hiển thị nhiệt độ"
-                    onToggled: function(checked) { sysBridge.updateSetting("show_temperature", checked) }
-                }
-
-                ToggleSetting {
-                    id: networkToggle
-                    width: parent.width
-                    title: "Hiển thị tốc độ mạng"
-                    onToggled: function(checked) { sysBridge.updateSetting("show_network_speed", checked) }
-                }
-
-                ToggleSetting {
-                    id: safeModeToggle
-                    width: parent.width
-                    title: "Chế độ an toàn khi kết thúc tiến trình"
-                    onToggled: function(checked) { sysBridge.updateSetting("safe_mode_process_kill", checked) }
-                }
             }
-        }
-    }
-
-    ConfirmDialog {
-        id: autostartConfirm
-        title: "Xác nhận tự khởi động"
-        message: "Cho phép ứng dụng tự khởi động cùng hệ thống?\n(Hệ thống sẽ ghi file vào ~/.config/autostart)"
-        onConfirmed: {
-            root.suppressAutostart = true
-            autostartToggle.checked = true
-            root.suppressAutostart = false
-            sysBridge.updateSetting("autostart", true)
-        }
-        onCancelled: {
-            root.suppressAutostart = true
-            autostartToggle.checked = false
-            root.suppressAutostart = false
-            sysBridge.updateSetting("autostart", false)
         }
     }
 }

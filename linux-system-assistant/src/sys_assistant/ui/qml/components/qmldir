@@ -14,3 +14,7 @@ QuickActionButton 1.0 QuickActionButton.qml
 ToggleSetting 1.0 ToggleSetting.qml
 ToolActionRow 1.0 ToolActionRow.qml
 NotificationCard 1.0 NotificationCard.qml
+AppButton 1.0 AppButton.qml
+AppBadge 1.0 AppBadge.qml
+EmptyState 1.0 EmptyState.qml
+InfoRow 1.0 InfoRow.qml

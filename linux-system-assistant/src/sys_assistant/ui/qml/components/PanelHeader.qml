@@ -11,7 +11,7 @@ Item {
     property color iconColor: Theme.accentBlue
     
     Layout.fillWidth: true
-    height: 32
+    height: 29
 
     RowLayout {
         anchors.fill: parent
@@ -31,7 +31,7 @@ Item {
             Text {
                 text: root.title
                 color: Theme.textPrimary
-                font.pixelSize: 13
+                font.pixelSize: Metrics.fontPanelTitle
                 font.bold: true
                 Layout.fillWidth: true
                 elide: Text.ElideRight
@@ -41,7 +41,7 @@ Item {
                 visible: root.subtitle !== ""
                 text: root.subtitle
                 color: Theme.textSecondary
-                font.pixelSize: 10
+                font.pixelSize: Metrics.fontCaption
                 Layout.fillWidth: true
                 elide: Text.ElideRight
             }

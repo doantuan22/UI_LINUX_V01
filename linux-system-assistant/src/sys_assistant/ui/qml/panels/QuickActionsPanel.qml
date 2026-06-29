@@ -11,7 +11,7 @@ GlassPanel {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Metrics.padding
-        spacing: 12
+        spacing: 10
         
         PanelHeader {
             title: "Thao tác nhanh"
@@ -30,41 +30,27 @@ GlassPanel {
             GridLayout {
                 width: quickScroll.availableWidth
                 columns: 2
-                rowSpacing: Metrics.gapSmall
                 columnSpacing: Metrics.gapMedium
 
                 QuickActionButton {
                     Layout.fillWidth: true
                     title: "Khởi động lại"
+                    subtitle: "Cần confirm và whitelist\nan toàn trước khi bật"
                     iconText: "↻"
-                    accentColor: Theme.accentYellow
-                    buttonEnabled: false // Safety disabled for now
+                    accentColor: Theme.textSecondary
+                    buttonEnabled: false
                 }
 
                 QuickActionButton {
                     Layout.fillWidth: true
                     title: "Tắt máy"
+                    subtitle: "Chưa bật backend\nshutdown an toàn"
                     iconText: "⏻"
-                    accentColor: Theme.accentRed
-                    buttonEnabled: false // Safety disabled for now
-                }
-
-                QuickActionButton {
-                    Layout.fillWidth: true
-                    title: "Đăng xuất"
-                    iconText: "🚪"
-                    accentColor: Theme.accentPurple
-                    buttonEnabled: false // Safety disabled for now
-                }
-
-                QuickActionButton {
-                    Layout.fillWidth: true
-                    title: "Khóa màn hình"
-                    iconText: "🔒"
-                    accentColor: Theme.accentCyan
-                    buttonEnabled: false // Safety disabled for now
+                    accentColor: Theme.textSecondary
+                    buttonEnabled: false
                 }
             }
         }
     }
 }
+

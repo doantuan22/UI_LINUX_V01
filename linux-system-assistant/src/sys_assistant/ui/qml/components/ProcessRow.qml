@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import "../styles"
 import "../components"
 
@@ -10,10 +9,12 @@ GlassCard {
     property string name: "Process"
     property string iconPath: ""
     property string iconName: ""
-    property string fallbackLetter: name.length > 0 ? name.charAt(0).toUpperCase() : "?"
+    property string fallbackGlyph: name.length > 0 ? name.charAt(0).toUpperCase() : "?"
     property string cpuText: "0.0"
-    property string ramText: "0.0"
+    property string ramText: "0 MB"
+    property string ramPercentText: "0.0%"
     property bool protectedProcess: false
+    property bool killable: !protectedProcess
     property int pid: 0
     property string statusText: protectedProcess ? "Bảo vệ" : "Đang chạy"
     property color statusColor: protectedProcess ? Theme.warning : Theme.success
@@ -28,14 +29,13 @@ GlassCard {
         anchors.fill: parent
         anchors.leftMargin: 10
         anchors.rightMargin: 10
-        anchors.topMargin: 6
-        anchors.bottomMargin: 6
         spacing: 10
 
         // App icon / fallback
         Item {
             Layout.preferredWidth: Metrics.processIconSize
             Layout.preferredHeight: Metrics.processIconSize
+            Layout.alignment: Qt.AlignVCenter
 
             Image {
                 id: processIcon
@@ -55,7 +55,7 @@ GlassCard {
 
                 Text {
                     anchors.centerIn: parent
-                    text: root.fallbackLetter
+                    text: root.fallbackGlyph
                     color: Theme.textPrimary
                     font.bold: true
                     font.pixelSize: Metrics.fontBody
@@ -70,6 +70,7 @@ GlassCard {
             color: Theme.textPrimary
             font.pixelSize: Metrics.fontBody
             elide: Text.ElideRight
+            verticalAlignment: Text.AlignVCenter
         }
 
         // CPU
@@ -78,35 +79,61 @@ GlassCard {
             text: root.cpuText + "%"
             color: Theme.textPrimary
             font.pixelSize: Metrics.fontBody
-            horizontalAlignment: Text.AlignRight
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
         }
 
-        // RAM
-        Text {
+        Column {
             Layout.preferredWidth: Metrics.processRamWidth
-            text: root.ramText + " MB"
-            color: Theme.textPrimary
-            font.pixelSize: Metrics.fontBody
-            horizontalAlignment: Text.AlignRight
+            Layout.alignment: Qt.AlignVCenter
+            spacing: 0
+
+            Text {
+                width: parent.width
+                text: root.ramPercentText
+                color: Theme.textPrimary
+                font.pixelSize: Metrics.fontBody
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            Text {
+                width: parent.width
+                text: root.ramText
+                color: Theme.textMuted
+                font.pixelSize: Metrics.fontCaption
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+            }
         }
 
-        // Status / Kill button
+        Item {
+            Layout.preferredWidth: Metrics.processStatusWidth
+            Layout.fillHeight: true
+
+            AppBadge {
+                anchors.centerIn: parent
+                visible: root.protectedProcess
+                text: "Bảo vệ"
+                tone: "warning"
+            }
+
+            AppBadge {
+                anchors.centerIn: parent
+                visible: !root.protectedProcess
+                text: "Đang chạy"
+                tone: "good"
+            }
+        }
+
         Item {
             Layout.preferredWidth: Metrics.killButtonWidth
             Layout.fillHeight: true
 
-            Text {
-                anchors.centerIn: parent
-                visible: root.protectedProcess
-                text: "Bảo vệ"
-                color: Theme.warning
-                font.pixelSize: Metrics.fontCaption
-                elide: Text.ElideRight
-            }
-
             SystemActionButton {
                 anchors.centerIn: parent
-                visible: !root.protectedProcess
+                visible: root.killable
                 label: "Kết thúc"
                 iconGlyph: "✕"
                 width: Metrics.killButtonWidth

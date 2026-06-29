@@ -7,6 +7,7 @@ from typing import Any
 
 import psutil
 
+from sys_assistant.managers.command_manager import CommandManager
 from sys_assistant.managers.permission_manager import PermissionManager
 from sys_assistant.services.logger_service import LoggerService
 
@@ -16,28 +17,101 @@ class ProcessManager:
         self,
         permission_manager: PermissionManager | None = None,
         logger: LoggerService | None = None,
+        command_manager: CommandManager | None = None,
     ) -> None:
         self.permission = permission_manager or PermissionManager()
         self.logger = logger or LoggerService()
+        self.command_manager = command_manager or CommandManager()
+        self._logical_cpu_count = max(psutil.cpu_count(logical=True) or 1, 1)
         self._pending_kills: dict[int, float] = {}
         self._desktop_icon_cache: dict[str, tuple[str, str | None]] | None = None
         self._icon_path_cache: dict[str, str | None] = {}
 
-    def get_top_processes(self, limit: int = 15, sort_by: str = "memory") -> list[dict[str, Any]]:
+    def get_top_processes(self, limit: int = 15, sort_by: str = "cpu") -> list[dict[str, Any]]:
+        processes = self._get_processes_from_ps()
+        if not processes:
+            processes = self._get_processes_from_psutil()
+
+        if sort_by == "memory":
+            processes.sort(key=lambda item: (item["memory_mb"], item["cpu"]), reverse=True)
+        else:
+            processes.sort(key=lambda item: (item["cpu"], item["memory_mb"]), reverse=True)
+        return processes[:limit]
+
+    def _get_processes_from_ps(self) -> list[dict[str, Any]]:
+        result = self.command_manager.run_action("process_snapshot")
+        if not result.ok or not result.stdout.strip():
+            return []
+
+        current_uid = os.getuid()
+        current_pid = os.getpid()
+        total_memory = max(psutil.virtual_memory().total, 1)
         processes: list[dict[str, Any]] = []
+        for line in result.stdout.splitlines():
+            parts = line.split(None, 6)
+            if len(parts) < 5:
+                continue
+
+            try:
+                if len(parts) >= 7:
+                    pid = int(parts[0])
+                    uid = int(parts[1])
+                    username = parts[2]
+                    cpu = float(parts[3])
+                    mem_percent = float(parts[4])
+                    rss_kb = int(parts[5])
+                    name = parts[6]
+                else:
+                    pid = int(parts[0])
+                    uid = int(parts[1])
+                    username = str(uid)
+                    cpu = float(parts[2])
+                    rss_kb = int(parts[3])
+                    name = parts[4]
+                    mem_percent = (rss_kb * 1024 / total_memory) * 100
+            except ValueError:
+                continue
+            is_protected = pid == 1 or self._is_protected_name(name) or self.permission.is_protected(name)
+
+            display_name, icon_name, icon_path = self._resolve_process_icon(name)
+            normalized_cpu = self._normalize_process_cpu(cpu)
+            killable = uid == current_uid and pid != current_pid and not is_protected
+            processes.append(
+                {
+                    "pid": pid,
+                    "name": name,
+                    "displayName": display_name,
+                    "iconName": icon_name,
+                    "iconPath": icon_path or "",
+                    "fallbackLetter": self._fallback_letter(display_name or name),
+                    "cpu": normalized_cpu,
+                    "cpuCorePercent": round(cpu, 1),
+                    "memory_mb": round(rss_kb / 1024, 1),
+                    "memory_percent": round(max(mem_percent, 0.0), 1),
+                    "username": username,
+                    "protected": is_protected,
+                    "killable": killable,
+                }
+            )
+        return processes
+
+    def _get_processes_from_psutil(self) -> list[dict[str, Any]]:
+        processes: list[dict[str, Any]] = []
+        current_pid = os.getpid()
         current_user = self.permission.current_user
 
-        for proc in psutil.process_iter(["pid", "name", "username", "memory_info"]):
+        for proc in psutil.process_iter(["pid", "name", "username", "memory_info", "memory_percent"]):
             try:
                 info = proc.info
-                if info["username"] != current_user:
-                    continue
-
-                is_protected = self.permission.is_protected(proc)
+                is_protected = info["pid"] == 1 or self.permission.is_protected(proc)
                 cpu = proc.cpu_percent(interval=0.0)
+                normalized_cpu = self._normalize_process_cpu(cpu)
                 mem_mb = round(info["memory_info"].rss / (1024**2), 1)
+                mem_percent = round(float(info.get("memory_percent") or 0.0), 1)
                 name = str(info["name"] or "Unknown")
                 display_name, icon_name, icon_path = self._resolve_process_icon(name)
+                username = str(info.get("username") or "")
+                killable = username == current_user and info["pid"] != current_pid and not is_protected
                 processes.append(
                     {
                         "pid": info["pid"],
@@ -46,19 +120,23 @@ class ProcessManager:
                         "iconName": icon_name,
                         "iconPath": icon_path or "",
                         "fallbackLetter": self._fallback_letter(display_name or name),
-                        "cpu": round(cpu, 1),
+                        "cpu": normalized_cpu,
+                        "cpuCorePercent": round(cpu, 1),
                         "memory_mb": mem_mb,
+                        "memory_percent": mem_percent,
+                        "username": username,
                         "protected": is_protected,
+                        "killable": killable,
                     }
                 )
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 continue
 
-        if sort_by == "cpu":
-            processes.sort(key=lambda item: item["cpu"], reverse=True)
-        else:
-            processes.sort(key=lambda item: (item["memory_mb"], item["cpu"]), reverse=True)
-        return processes[:limit]
+        return processes
+
+    def _normalize_process_cpu(self, cpu_percent: float) -> float:
+        """Convert per-core Linux process CPU percent to whole-machine percent."""
+        return round(max(cpu_percent, 0.0) / self._logical_cpu_count, 1)
 
     def kill_process(self, pid: int, force: bool = False) -> dict[str, Any]:
         import time
@@ -126,6 +204,12 @@ class ProcessManager:
         icon_name = lookup_names[0]
         return process_name, icon_name, self._find_icon_path(icon_name)
 
+    def _is_protected_name(self, process_name: str) -> bool:
+        name = self._normalize_name(process_name)
+        return name in self.permission.protected or any(
+            protected in name for protected in self.permission.protected if len(protected) > 3
+        )
+
     def _load_desktop_icons(self) -> dict[str, tuple[str, str | None]]:
         if self._desktop_icon_cache is not None:
             return self._desktop_icon_cache
@@ -187,24 +271,34 @@ class ProcessManager:
             Path("/usr/share/icons"),
             Path("/usr/share/pixmaps"),
         ]
+        
+        subdirs = [
+            "",
+            "48x48/apps",
+            "64x64/apps",
+            "128x128/apps",
+            "scalable/apps",
+            "256x256/apps",
+            "32x32/apps",
+            "16x16/apps",
+            "apps"
+        ]
+        
         exts = (".png", ".svg", ".xpm")
+        
         for root in icon_roots:
             if not root.exists():
                 continue
-            for ext in exts:
-                direct = root / f"{icon_name}{ext}"
-                if direct.exists():
-                    resolved = str(direct)
-                    self._icon_path_cache[icon_name] = resolved
-                    return resolved
-            for ext in exts:
-                try:
-                    match = next(root.rglob(f"{icon_name}{ext}"))
-                except (OSError, StopIteration):
+            for subdir in subdirs:
+                base_dir = root / subdir if subdir else root
+                if not base_dir.exists():
                     continue
-                resolved = str(match)
-                self._icon_path_cache[icon_name] = resolved
-                return resolved
+                for ext in exts:
+                    direct = base_dir / f"{icon_name}{ext}"
+                    if direct.exists():
+                        resolved = str(direct)
+                        self._icon_path_cache[icon_name] = resolved
+                        return resolved
 
         self._icon_path_cache[icon_name] = None
         return None

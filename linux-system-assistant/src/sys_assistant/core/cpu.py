@@ -3,7 +3,14 @@ from __future__ import annotations
 import psutil
 
 
+_cpu_percent_ready = False
+
+
 def get_cpu_usage() -> float:
+    global _cpu_percent_ready
+    if not _cpu_percent_ready:
+        _cpu_percent_ready = True
+        return psutil.cpu_percent(interval=0.1)
     return psutil.cpu_percent(interval=None)
 
 

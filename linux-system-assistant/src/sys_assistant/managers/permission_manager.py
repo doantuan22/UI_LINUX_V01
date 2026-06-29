@@ -25,11 +25,14 @@ class PermissionManager:
         items = data.get("protected", [])
         return {str(item).lower() for item in items}
 
-    def is_protected(self, process: psutil.Process) -> bool:
-        try:
-            name = process.name().lower()
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            return True
+    def is_protected(self, process: psutil.Process | str) -> bool:
+        if isinstance(process, str):
+            name = process.lower()
+        else:
+            try:
+                name = process.name().lower()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                return True
         return name in self.protected or any(
             protected in name for protected in self.protected if len(protected) > 3
         )

@@ -9,7 +9,7 @@ GlassCard {
 
     signal clicked()
 
-    height: 34
+    height: Metrics.buttonHeight
     hoverEnabled: true
     clip: true
 

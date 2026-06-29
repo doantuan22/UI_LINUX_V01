@@ -10,5 +10,9 @@ if [[ ! -d "$VENV" ]]; then
 fi
 
 export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
-export QT_QPA_PLATFORM=xcb
+
+# Do not force a Qt backend globally: Wayland sessions and systems without
+# xcb-cursor fail before QML can load. Qt will pick the native backend when
+# QT_QPA_PLATFORM is unset, and explicit overrides remain respected.
+
 exec "$VENV/bin/python" -m sys_assistant.main "$@"

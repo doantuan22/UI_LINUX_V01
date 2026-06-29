@@ -9,10 +9,35 @@ _prev_counters = None
 _prev_time: float | None = None
 
 
+def _active_counters():
+    per_nic = psutil.net_io_counters(pernic=True)
+    try:
+        nic_stats = psutil.net_if_stats()
+    except (OSError, PermissionError):
+        nic_stats = {}
+    active = []
+
+    for name, counters in per_nic.items():
+        lower_name = name.lower()
+        stats = nic_stats.get(name)
+        if lower_name == "lo" or lower_name.startswith(("docker", "veth", "br-", "virbr")):
+            continue
+        if stats is not None and not stats.isup:
+            continue
+        active.append(counters)
+
+    if not active:
+        return psutil.net_io_counters()
+
+    fields = active[0]._fields
+    values = {field: sum(getattr(item, field) for item in active) for field in fields}
+    return type(active[0])(**values)
+
+
 def get_network_info() -> dict:
     global _prev_counters, _prev_time
 
-    counters = psutil.net_io_counters()
+    counters = _active_counters()
     now = time.time()
 
     download_mb_s = 0.0
@@ -35,4 +60,6 @@ def get_network_info() -> dict:
     return {
         "download_mb_s": max(download_mb_s, 0.0),
         "upload_mb_s": max(upload_mb_s, 0.0),
+        "bytes_recv": counters.bytes_recv,
+        "bytes_sent": counters.bytes_sent,
     }

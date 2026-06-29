@@ -45,7 +45,7 @@ def get_gpu_info() -> dict:
 
     if _gpu_mode in (None, "pynvml"):
         try:
-            import pynvml
+            import pynvml  # type: ignore
             pynvml.nvmlInit()
             handle = pynvml.nvmlDeviceGetHandleByIndex(0)
             name = pynvml.nvmlDeviceGetName(handle)

@@ -23,8 +23,8 @@ Rectangle {
     layer.enabled: true
     layer.effect: MultiEffect {
         shadowEnabled: true
-        shadowBlur: 0.8
-        shadowOpacity: 0.35
-        shadowVerticalOffset: 8
+        shadowBlur: 0.55
+        shadowOpacity: 0.36
+        shadowVerticalOffset: 10
     }
 }

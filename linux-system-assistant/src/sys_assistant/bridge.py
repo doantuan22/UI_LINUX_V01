@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from PySide6.QtCore import Property, QCoreApplication, QObject, QTimer, Signal, Slot
+from PySide6.QtCore import Property, QCoreApplication, QObject, QRunnable, QThreadPool, QTimer, Signal, Slot
 from PySide6.QtGui import QGuiApplication
 
 from sys_assistant.config.app_config import AppConfig
@@ -11,17 +11,44 @@ from sys_assistant.core.monitor import SystemMonitor
 from sys_assistant.managers.cleanup_manager import CleanupManager
 from sys_assistant.managers.health_checker import HealthChecker
 from sys_assistant.managers.performance_manager import PerformanceManager
+from sys_assistant.system_tools.system_check import SystemChecker
+from sys_assistant.system_tools.cleanup import CleanupScanner
+from sys_assistant.system_tools.hardware_info import HardwareInfoCollector
 from sys_assistant.managers.process_manager import ProcessManager
 from sys_assistant.services.autostart_service import AutostartService
 from sys_assistant.services.logger_service import LoggerService
 from sys_assistant.services.polling_service import PollingService
 
 
+class _AsyncTaskSignals(QObject):
+    finished = Signal(str, "QVariant")  # type: ignore[arg-type]
+
+
+class _AsyncTask(QRunnable):
+    def __init__(self, action: str, callback, signal_parent: QObject | None = None) -> None:
+        super().__init__()
+        self.setAutoDelete(False)
+        self.action = action
+        self.callback = callback
+        self.signals = _AsyncTaskSignals(signal_parent)
+
+    def run(self) -> None:
+        try:
+            result = self.callback()
+        except Exception as exc:  # pragma: no cover - defensive UI boundary
+            result = {"ok": False, "message": f"Tác vụ lỗi: {exc}"}
+        try:
+            self.signals.finished.emit(self.action, result)
+        except RuntimeError:
+            # The app may be closing while a worker is finishing.
+            return
+
+
 class SysAssistantBridge(QObject):
-    statsUpdated = Signal("QVariant")
-    actionCompleted = Signal(str, "QVariant")
-    processesUpdated = Signal("QVariant")
-    errorLogsUpdated = Signal("QVariant")
+    statsUpdated = Signal("QVariant")  # type: ignore[arg-type]
+    actionCompleted = Signal(str, "QVariant")  # type: ignore[arg-type]
+    processesUpdated = Signal("QVariant")  # type: ignore[arg-type]
+    errorLogsUpdated = Signal("QVariant")  # type: ignore[arg-type]
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -32,6 +59,9 @@ class SysAssistantBridge(QObject):
         self.performance_manager = PerformanceManager(logger=self.logger)
         self.cleanup_manager = CleanupManager(logger=self.logger)
         self.health_checker = HealthChecker()
+        self._system_checker = SystemChecker()
+        self._cleanup_scanner = CleanupScanner()
+        self._hw_collector = HardwareInfoCollector()
         self.autostart = AutostartService()
 
         self._stats: dict[str, Any] = self._default_stats()
@@ -44,6 +74,9 @@ class SysAssistantBridge(QObject):
         self._poll_count = 0
         self._cached_power_profile = self.performance_manager.get_current_profile()
         self.monitor.set_power_profile(self._cached_power_profile)
+        self._thread_pool = QThreadPool.globalInstance()
+        self._async_busy: set[str] = set()
+        self._async_tasks: dict[str, _AsyncTask] = {}
 
     def start_polling(self) -> None:
         self._polling.start()
@@ -73,7 +106,7 @@ class SysAssistantBridge(QObject):
             "power_profile": "unknown",
         }
 
-    @Property("QVariant", notify=statsUpdated)
+    @Property("QVariant", notify=statsUpdated)  # type: ignore[arg-type]
     def stats(self):
         return self._stats
 
@@ -86,6 +119,10 @@ class SysAssistantBridge(QObject):
         processes = self.process_manager.get_top_processes()
         self.processesUpdated.emit(processes)
         return processes
+
+    @Slot(result=bool)
+    def requestTopProcesses(self) -> bool:
+        return self._run_async("top_processes", self.process_manager.get_top_processes)
 
     @Slot(int, bool, result="QVariant")
     def killProcess(self, pid: int, force: bool = False):
@@ -111,29 +148,79 @@ class SysAssistantBridge(QObject):
 
     @Slot(result="QVariant")
     def getPowerStatus(self):
-        return self.performance_manager.get_status()
+        status = self.performance_manager.get_status()
+        status["current"] = self._cached_power_profile
+        return status
 
     @Slot(result="QVariant")
     def runSystemCheck(self):
-        result = self.health_checker.run_system_check()
-        if result.get("status") in {"warning", "error"}:
-            self.logger.warning(f"System check finished with status={result.get('status')}")
+        result = self._system_checker.run_system_check()
         self.actionCompleted.emit("system_check", result)
+        return result
+
+    @Slot(result=bool)
+    def requestSystemCheck(self) -> bool:
+        return self._run_async("system_check", self._system_checker.run_system_check)
+
+    @Slot(result="QVariant")
+    def scanCleanupTargets(self):
+        result = self._cleanup_scanner.scan()
+        self.actionCompleted.emit("scan_cleanup", result)
+        return result
+
+    @Slot(result=bool)
+    def requestCleanupScan(self) -> bool:
+        return self._run_async("scan_cleanup", self._cleanup_scanner.scan)
+
+    @Slot("QVariant", bool, result="QVariant")
+    def runCleanup(self, selected_ids, confirm_trash: bool = False):
+        if hasattr(selected_ids, "toVariant"):
+            selected_ids = selected_ids.toVariant()
+        ids = list(selected_ids) if selected_ids else []
+        result = self._cleanup_scanner.run_cleanup(ids, confirm_trash=confirm_trash)
+        if result.get("cleaned_bytes", 0) > 0:
+            self.logger.log_action("cleanup", f"cleaned={result.get('cleaned_label', '0 B')}")
+        self.actionCompleted.emit("run_cleanup", result)
         self.errorLogsUpdated.emit(self.logger.recent_errors())
         return result
 
-    @Slot(result="QVariant")
-    def getThumbnailCacheSize(self):
-        return self.cleanup_manager.get_thumbnail_cache_size()
+    @Slot("QVariant", bool, result=bool)
+    def requestRunCleanup(self, selected_ids, confirm_trash: bool = False) -> bool:
+        if hasattr(selected_ids, "toVariant"):
+            selected_ids = selected_ids.toVariant()
+        ids = list(selected_ids) if selected_ids else []
+        return self._run_async(
+            "run_cleanup",
+            lambda: self._run_cleanup_worker(ids, confirm_trash),
+        )
+
+    def _run_cleanup_worker(self, ids: list, confirm_trash: bool = False) -> dict[str, Any]:
+        result = self._cleanup_scanner.run_cleanup(ids, confirm_trash=confirm_trash)
+        if result.get("cleaned_bytes", 0) > 0:
+            self.logger.log_action("cleanup", f"cleaned={result.get('cleaned_label', '0 B')}")
+        return result
 
     @Slot(result="QVariant")
-    def cleanThumbnailCache(self):
-        result = self.cleanup_manager.clean_thumbnail_cache()
-        if not result.get("ok", False):
-            self.logger.warning(f"Cleanup failed: {result.get('message', 'unknown error')}")
-        self.actionCompleted.emit("clean_cache", result)
-        self.errorLogsUpdated.emit(self.logger.recent_errors())
+    def getHardwareInfo(self):
+        result = self._hw_collector.get_hardware_info()
         return result
+
+    @Slot(result=bool)
+    def requestHardwareInfo(self) -> bool:
+        return self._run_async("hardware_info", self._hw_collector.get_hardware_info)
+
+    @Slot(result=bool)
+    def requestThumbnailCacheSize(self) -> bool:
+        return self._run_async("get_thumbnail_size", self.cleanup_manager.get_thumbnail_cache_size)
+
+    @Slot(result=bool)
+    def requestCleanThumbnailCache(self) -> bool:
+        def _clean_worker():
+            result = self.cleanup_manager.clean_thumbnail_cache()
+            if not result.get("ok", False):
+                self.logger.warning(f"Cleanup failed: {result.get('message', 'unknown error')}")
+            return result
+        return self._run_async("clean_cache", _clean_worker)
 
     @Slot(result="QVariant")
     def getSettings(self):
@@ -206,6 +293,26 @@ class SysAssistantBridge(QObject):
     @Slot()
     def clearErrorLogs(self):
         self.logger.clear_recent_errors()
+        self.errorLogsUpdated.emit(self.logger.recent_errors())
+
+    def _run_async(self, action: str, callback) -> bool:
+        if action in self._async_busy:
+            return False
+        self._async_busy.add(action)
+        task = _AsyncTask(action, callback, signal_parent=self)
+        self._async_tasks[action] = task
+        task.signals.finished.connect(self._on_async_finished)
+        self._thread_pool.start(task)
+        return True
+
+    @Slot(str, "QVariant")
+    def _on_async_finished(self, action: str, result) -> None:
+        self._async_busy.discard(action)
+        self._async_tasks.pop(action, None)
+        if action == "top_processes":
+            self.processesUpdated.emit(result)
+            return
+        self.actionCompleted.emit(action, result)
         self.errorLogsUpdated.emit(self.logger.recent_errors())
 
     @Slot(result=bool)

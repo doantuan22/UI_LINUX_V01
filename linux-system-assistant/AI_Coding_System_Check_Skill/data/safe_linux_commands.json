@@ -1,0 +1,183 @@
+{
+  "name": "safe_linux_system_check_commands",
+  "version": "1.0.0",
+  "principle": "All commands are read-only by default. Do not run destructive or privileged commands without explicit approval.",
+  "status_levels": {
+    "good": "No visible issue or within safe threshold",
+    "warning": "Potential issue that should be watched or investigated",
+    "high": "Likely user-impacting issue",
+    "critical": "Severe issue requiring immediate attention",
+    "unknown": "Command unavailable or evidence insufficient"
+  },
+  "commands": [
+    {
+      "id": "os_info",
+      "title": "OS and kernel information",
+      "commands": [
+        "uname -a",
+        "cat /etc/os-release",
+        "hostnamectl",
+        "uptime"
+      ],
+      "expected_output": [
+        "distro name",
+        "kernel version",
+        "architecture",
+        "uptime/load"
+      ],
+      "ui_display": "System: Good/Warning/Unknown",
+      "risk": "read-only"
+    },
+    {
+      "id": "cpu_ram",
+      "title": "CPU, memory and load",
+      "commands": [
+        "lscpu",
+        "free -h",
+        "vmstat 1 5",
+        "uptime"
+      ],
+      "expected_output": [
+        "CPU model/core count",
+        "RAM total/used/free",
+        "swap usage",
+        "load average"
+      ],
+      "thresholds": {
+        "ram_available_percent_warning": "< 10%",
+        "swap_usage_warning": "> 50% with low available RAM",
+        "load_warning": "load average > CPU core count for sustained period"
+      },
+      "ui_display": "CPU: Good/Warning/Critical, RAM: Good/Warning/Critical",
+      "risk": "read-only"
+    },
+    {
+      "id": "disk",
+      "title": "Disk and mount points",
+      "commands": [
+        "df -hT",
+        "lsblk -o NAME,SIZE,FSTYPE,TYPE,MOUNTPOINTS,MODEL",
+        "findmnt"
+      ],
+      "expected_output": [
+        "filesystem usage",
+        "mount points",
+        "device list"
+      ],
+      "thresholds": {
+        "good": "root usage < 70%",
+        "warning": "root usage 70-84%",
+        "high": "root usage 85-94%",
+        "critical": "root usage >= 95% or /tmp full"
+      },
+      "ui_display": "Disk: Good/Warning/High/Critical",
+      "risk": "read-only"
+    },
+    {
+      "id": "failed_services",
+      "title": "Failed systemd services",
+      "commands": [
+        "systemctl --failed --no-pager",
+        "systemctl list-units --type=service --state=failed --no-pager"
+      ],
+      "expected_output": [
+        "failed unit list",
+        "loaded/active/sub state"
+      ],
+      "thresholds": {
+        "good": "0 failed services",
+        "warning": "non-critical failed service",
+        "high": "app, driver, display, network or storage service failed"
+      },
+      "ui_display": "Services: Good/Warning/High",
+      "risk": "read-only"
+    },
+    {
+      "id": "logs_errors",
+      "title": "Critical logs",
+      "commands": [
+        "journalctl -p 3 -xb --no-pager -n 200",
+        "journalctl -p warning -xb --no-pager -n 200"
+      ],
+      "expected_output": [
+        "recent critical/error logs",
+        "warnings"
+      ],
+      "thresholds": {
+        "good": "no relevant current errors",
+        "warning": "old or isolated errors",
+        "high": "repeated app crash, driver errors, service failures",
+        "critical": "filesystem I/O errors, kernel panic, repeated crash loop"
+      },
+      "ui_display": "Logs: Good/Warning/High/Critical",
+      "risk": "read-only; may expose logs, review privacy before sharing"
+    },
+    {
+      "id": "gpu_driver",
+      "title": "GPU and driver",
+      "commands": [
+        "lspci -k | grep -EA3 'VGA|3D|Display'",
+        "glxinfo -B 2>/dev/null || true",
+        "vulkaninfo --summary 2>/dev/null || true"
+      ],
+      "expected_output": [
+        "GPU model",
+        "kernel driver",
+        "OpenGL/Vulkan renderer"
+      ],
+      "ui_display": "GPU: Good/Warning/Unknown",
+      "risk": "read-only"
+    },
+    {
+      "id": "temperature",
+      "title": "Temperature and sensors",
+      "commands": [
+        "sensors 2>/dev/null || true",
+        "cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null || true"
+      ],
+      "expected_output": [
+        "CPU/GPU temperature",
+        "fan readings if available"
+      ],
+      "thresholds": {
+        "good": "idle CPU < 60C",
+        "warning": "idle CPU 60-80C",
+        "high": "idle CPU > 80C",
+        "critical": "> 90C sustained"
+      },
+      "ui_display": "Temperature: Good/Warning/High/Critical/Unknown",
+      "risk": "read-only"
+    },
+    {
+      "id": "network_basic",
+      "title": "Network basics",
+      "commands": [
+        "ip addr",
+        "ip route",
+        "resolvectl status 2>/dev/null || systemd-resolve --status 2>/dev/null || true"
+      ],
+      "expected_output": [
+        "network interfaces",
+        "default route",
+        "DNS configuration"
+      ],
+      "ui_display": "Network: Good/Warning/Unknown",
+      "risk": "read-only"
+    }
+  ],
+  "forbidden_by_default": [
+    "rm -rf",
+    "sudo rm",
+    "mkfs",
+    "fdisk",
+    "parted",
+    "dd",
+    "chmod -R",
+    "chown -R",
+    "apt autoremove",
+    "apt purge",
+    "systemctl disable",
+    "systemctl mask",
+    "kill -9"
+  ]
+}

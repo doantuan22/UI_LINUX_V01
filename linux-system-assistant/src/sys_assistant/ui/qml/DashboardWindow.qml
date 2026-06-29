@@ -17,7 +17,7 @@ Window {
 
     width: Metrics.dashboardWidth
     height: Metrics.dashboardHeight
-    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
+    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
     visible: false
 
@@ -29,6 +29,9 @@ Window {
 
     function openPanel() {
         visible = true
+        show()
+        raise()
+        requestActivate()
         panelOpacity = 1
         panelScale = 1
         if (activePanel === "processes") refreshProcesses()
@@ -47,7 +50,7 @@ Window {
 
     function refreshProcesses() {
         if (activePanel === "processes")
-            bridge.getTopProcesses()
+            bridge.requestTopProcesses()
     }
 
     Connections {
@@ -188,7 +191,7 @@ Window {
                     StatCard { id: ramCard; title: "RAM"; accentColor: Theme.ramAccent }
                     StatCard { id: diskCard; title: "Disk"; accentColor: Theme.diskAccent }
                     StatCard { id: tempCard; title: "Temp"; accentColor: Theme.tempAccent }
-                    StatCard { id: fanCard; title: "Fan"; accentColor: Theme.fanAccent }
+                    StatCard { id: fanCard; title: "Fan"; accentColor: Theme.fanAccent; enableThresholdBorder: false }
                 }
 
                 NetworkCard {
@@ -284,6 +287,7 @@ Window {
                         visible: activePanel === "processes"
                         bridge: sysBridge
                         killDialog: killDialog
+                        autoRefreshEnabled: dashboard.visible && activePanel === "processes"
                     }
 
                     SettingsPanel {
@@ -312,64 +316,34 @@ Window {
             var result = bridge.killProcess(pidToKill, forceKill)
             statusPopup.text = result.message || JSON.stringify(result)
             statusPopup.open()
-            if (!forceKill && bridge.isProcessAlive(pidToKill)) {
-                forceKill = true
-                Qt.callLater(function() { killDialog.open() })
+            if (!forceKill) {
+                // Đợi 1.5 giây để tiến trình có thời gian tự thoát trước khi kiểm tra lại
+                gracePeriodTimer.pidToCheck = pidToKill
+                gracePeriodTimer.start()
             } else {
                 dashboard.refreshProcesses()
             }
         }
     }
 
-    ConfirmDialog {
-        id: cleanCacheDialog
-        title: "Dọn cache thumbnail?"
-        message: {
-            var info = bridge.getThumbnailCacheSize()
-            return "Xóa thumbnail cache (" + (info.human || "0 B") + ")? Chỉ xóa ~/.cache/thumbnails."
-        }
-        confirmText: "Dọn dẹp"
-        onConfirmed: {
-            var result = bridge.cleanThumbnailCache()
-            statusPopup.text = result.message || JSON.stringify(result)
-            statusPopup.open()
+    Timer {
+        id: gracePeriodTimer
+        property int pidToCheck: 0
+        interval: 1500
+        repeat: false
+        onTriggered: {
+            if (bridge.isProcessAlive(pidToCheck)) {
+                killDialog.forceKill = true
+                killDialog.pidToKill = pidToCheck
+                killDialog.open()
+            } else {
+                dashboard.refreshProcesses()
+            }
         }
     }
 
-    Popup {
-        id: checkResultPopup
-        property alias text: resultText.text
-        modal: true
-        anchors.centerIn: parent
-        width: 420
-        height: 320
-        padding: 0
-        background: GlassPanel { radiusSize: Metrics.cardRadius }
-        contentItem: Column {
-            anchors.fill: parent
-            anchors.margins: 16
-            spacing: 10
-            Text { text: "Kiểm tra hệ thống"; color: Theme.textPrimary; font.bold: true; font.pixelSize: 15 }
-            ScrollView {
-                width: parent.width
-                height: parent.height - 50
-                Text {
-                    id: resultText
-                    color: Theme.textSecondary
-                    font.family: "monospace"
-                    font.pixelSize: 11
-                    wrapMode: Text.Wrap
-                    width: parent.width
-                }
-            }
-            SystemActionButton {
-                anchors.horizontalCenter: parent.horizontalCenter
-                label: "Đóng"
-                iconGlyph: "✕"
-                onClicked: checkResultPopup.close()
-            }
-        }
-    }
+
+
 
     Popup {
         id: statusPopup

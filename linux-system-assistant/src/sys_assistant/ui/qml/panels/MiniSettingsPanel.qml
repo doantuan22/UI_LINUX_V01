@@ -10,21 +10,10 @@ GlassPanel {
     property var bridge
     clip: true
 
-    function loadSettings() {
-        if (bridge) {
-            var s = bridge.getSettings()
-            autostartToggle.checked = !!s.autostart
-            tempToggle.checked = s.show_temperature !== false
-            autoHideToggle.checked = !!s.auto_hide
-        }
-    }
-
-    Component.onCompleted: loadSettings()
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Metrics.padding
-        spacing: 12
+        spacing: 10
         
         PanelHeader {
             title: "Cài đặt"
@@ -43,33 +32,48 @@ GlassPanel {
                 width: parent.width
                 spacing: 10
 
-                ToggleSetting {
-                    id: autostartToggle
-                    width: parent.width
-                    title: "Khởi động cùng hệ thống"
-                    onToggled: function(checked) {
-                        if (bridge) bridge.updateSetting("autostart", checked)
-                    }
-                }
+                Repeater {
+                    model: [
+                        { title: "Khởi động cùng hệ thống", desc: "Tự động mở ứng dụng khi đăng nhập" },
+                        { title: "Tự động thu gọn", desc: "Thu gọn vào khay hệ thống khi đóng" }
+                    ]
+                    delegate: GlassCard {
+                        width: parent.width
+                        height: 60
+                        hoverEnabled: false
 
-                ToggleSetting {
-                    id: autoHideToggle
-                    width: parent.width
-                    title: "Tự động thu gọn"
-                    onToggled: function(checked) {
-                        if (bridge) bridge.updateSetting("auto_hide", checked)
-                    }
-                }
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            spacing: 8
 
-                ToggleSetting {
-                    id: tempToggle
-                    width: parent.width
-                    title: "Hiển thị nhiệt độ"
-                    onToggled: function(checked) {
-                        if (bridge) bridge.updateSetting("show_temperature", checked)
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 3
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: modelData.title
+                                    color: Theme.textPrimary
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                }
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: modelData.desc
+                                    color: Theme.textSecondary
+                                    font.pixelSize: Metrics.fontCaption
+                                }
+                            }
+
+                            AppBadge {
+                                text: "Đang phát triển"
+                                tone: "disabled"
+                            }
+                        }
                     }
                 }
             }
         }
     }
 }
+

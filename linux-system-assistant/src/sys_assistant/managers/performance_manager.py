@@ -21,21 +21,36 @@ class PerformanceManager:
     ) -> None:
         self.commands = command_manager or CommandManager()
         self.logger = logger or LoggerService()
+        self._cached_profiles: list[str] | None = None
+        self._cached_supported: bool | None = None
 
     def is_supported(self) -> bool:
+        if self._cached_supported is not None:
+            return self._cached_supported
+            
         import shutil
-
-        return shutil.which("powerprofilesctl") is not None
+        self._cached_supported = shutil.which("powerprofilesctl") is not None
+        return self._cached_supported
 
     def get_current_profile(self) -> str:
+        if not self.is_supported():
+            return "unknown"
         result = self.commands.run_action("power_profile_get")
         if result.ok and result.stdout.strip():
             return result.stdout.strip()
         return "unknown"
 
     def list_profiles(self) -> list[str]:
+        if self._cached_profiles is not None:
+            return self._cached_profiles
+            
+        if not self.is_supported():
+            self._cached_profiles = []
+            return []
+            
         result = self.commands.run_action("power_profile_list")
         if not result.ok:
+            self._cached_profiles = []
             return []
 
         profiles: list[str] = []
@@ -43,6 +58,8 @@ class PerformanceManager:
             match = re.search(r"(\S+):\s*$", line.strip())
             if match:
                 profiles.append(match.group(1))
+        
+        self._cached_profiles = profiles
         return profiles
 
     def set_profile(self, profile: str) -> dict[str, Any]:
@@ -67,6 +84,6 @@ class PerformanceManager:
         profiles = self.list_profiles()
         return {
             "supported": bool(profiles) or self.is_supported(),
-            "current": self.get_current_profile(),
+            "current": "unknown", # Rely on bridge cache for current profile
             "available": profiles or list(PROFILE_ACTIONS.keys()),
         }
