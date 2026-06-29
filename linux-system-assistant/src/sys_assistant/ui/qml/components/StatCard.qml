@@ -1,7 +1,7 @@
 import QtQuick
 import "../styles"
 
-GlassPanel {
+GlassCard {
     id: card
 
     property string title: "CPU"
@@ -11,11 +11,11 @@ GlassPanel {
 
     width: Metrics.statCardSize
     height: Metrics.statCardSize
-    radiusSize: Metrics.cardRadius
+    hoverEnabled: true
 
     Column {
         anchors.centerIn: parent
-        spacing: 8
+        spacing: 6
 
         CircularGauge {
             anchors.horizontalCenter: parent.horizontalCenter
@@ -27,16 +27,22 @@ GlassPanel {
         Text {
             text: card.title
             color: Theme.textPrimary
-            font.pixelSize: 15
+            font.pixelSize: Metrics.fontCardLabel
             font.weight: Font.Medium
             anchors.horizontalCenter: parent.horizontalCenter
+            elide: Text.ElideRight
+            width: card.width - 16
+            horizontalAlignment: Text.AlignHCenter
         }
 
         Text {
             text: card.subValue
             color: Theme.textSecondary
-            font.pixelSize: 11
+            font.pixelSize: Metrics.fontCardSub
             anchors.horizontalCenter: parent.horizontalCenter
+            width: card.width - 16
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
         }
     }
 }

@@ -14,6 +14,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "safe_mode_process_kill": True,
     "start_minimized": False,
     "notifications_enabled": True,
+    "auto_hide": False,
     "floating_icon": {
         "x": 100,
         "y": 100,

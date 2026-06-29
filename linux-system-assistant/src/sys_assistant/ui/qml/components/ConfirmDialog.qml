@@ -6,10 +6,10 @@ import "../styles"
 Popup {
     id: root
 
-    property string title: "Confirm"
-    property string message: "Are you sure?"
-    property string confirmText: "Confirm"
-    property string cancelText: "Cancel"
+    property string title: "Xác nhận"
+    property string message: "Bạn có chắc muốn tiếp tục?"
+    property string confirmText: "Xác nhận"
+    property string cancelText: "Hủy"
 
     signal confirmed()
     signal cancelled()
@@ -36,6 +36,7 @@ Popup {
             font.pixelSize: 16
             font.bold: true
             Layout.fillWidth: true
+            elide: Text.ElideRight
         }
 
         Text {

@@ -6,10 +6,11 @@ FloatingIcon {
     bridge: sysBridge
     dashboard: dashboard
 
-    DashboardWindow {
+    DesktopOverlay {
         id: dashboard
         bridge: sysBridge
         anchorPoint: Qt.point(floatingIcon.x, floatingIcon.y)
+        onHiddenRequested: floatingIcon.visible = true
 
         Connections {
             target: floatingIcon

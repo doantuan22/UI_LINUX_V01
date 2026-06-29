@@ -5,14 +5,20 @@ import "../styles"
 Rectangle {
     id: root
 
-    property real radiusSize: Metrics.panelRadius
+    property bool active: false
+    property real radiusSize: Metrics.radiusPanel
     property color glassColor: Theme.glassPanel
-    property color borderColor: Theme.border
+    property color borderColor: active ? Theme.borderActive : Theme.borderSoft
 
     color: glassColor
     radius: radiusSize
     border.width: 1
     border.color: borderColor
+    clip: true
+
+    Behavior on border.color {
+        ColorAnimation { duration: 150 }
+    }
 
     layer.enabled: true
     layer.effect: MultiEffect {

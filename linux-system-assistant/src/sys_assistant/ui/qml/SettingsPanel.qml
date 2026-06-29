@@ -8,92 +8,99 @@ GlassPanel {
     id: root
 
     radiusSize: Metrics.cardRadius
+    clip: true
+    property bool suppressAutostart: false
 
     function loadSettings() {
         var s = sysBridge.getSettings()
-        autostartSwitch.checked = !!s.autostart
-        tempSwitch.checked = s.show_temperature !== false
-        networkSwitch.checked = s.show_network_speed !== false
-        safeModeSwitch.checked = s.safe_mode_process_kill !== false
+        autostartToggle.checked = !!s.autostart
+        tempToggle.checked = s.show_temperature !== false
+        networkToggle.checked = s.show_network_speed !== false
+        safeModeToggle.checked = s.safe_mode_process_kill !== false
     }
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 10
+        anchors.margins: Metrics.padding
+        spacing: Metrics.gapMedium
 
         Text {
-            text: "Settings"
+            text: "Cài đặt"
             color: Theme.textPrimary
-            font.pixelSize: 14
+            font.pixelSize: Metrics.fontPanelTitle
             font.bold: true
+            Layout.fillWidth: true
+            elide: Text.ElideRight
         }
 
-        RowLayout {
+        ScrollView {
             Layout.fillWidth: true
-            Text { text: "Autostart"; color: Theme.textSecondary; Layout.fillWidth: true }
-            Switch {
-                id: autostartSwitch
-                property bool suppressToggle: false
-                
-                onToggled: {
-                    if (suppressToggle) return;
-                    
-                    if (checked) {
-                        suppressToggle = true;
-                        checked = false; // revert temporarily
-                        suppressToggle = false;
-                        autostartConfirm.open();
-                    } else {
-                        sysBridge.updateSetting("autostart", false);
+            Layout.fillHeight: true
+            clip: true
+            ScrollBar.vertical.policy: ScrollBar.AsNeeded
+            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+
+            Column {
+                width: parent.width
+                spacing: Metrics.gapMedium
+
+                ToggleSetting {
+                    id: autostartToggle
+                    width: parent.width
+                    title: "Khởi động cùng hệ thống"
+                    onToggled: function(checked) {
+                        if (root.suppressAutostart)
+                            return
+                        if (checked) {
+                            root.suppressAutostart = true
+                            autostartToggle.checked = false
+                            root.suppressAutostart = false
+                            autostartConfirm.open()
+                        } else {
+                            sysBridge.updateSetting("autostart", false)
+                        }
                     }
+                }
+
+                ToggleSetting {
+                    id: tempToggle
+                    width: parent.width
+                    title: "Hiển thị nhiệt độ"
+                    onToggled: function(checked) { sysBridge.updateSetting("show_temperature", checked) }
+                }
+
+                ToggleSetting {
+                    id: networkToggle
+                    width: parent.width
+                    title: "Hiển thị tốc độ mạng"
+                    onToggled: function(checked) { sysBridge.updateSetting("show_network_speed", checked) }
+                }
+
+                ToggleSetting {
+                    id: safeModeToggle
+                    width: parent.width
+                    title: "Chế độ an toàn khi kết thúc tiến trình"
+                    onToggled: function(checked) { sysBridge.updateSetting("safe_mode_process_kill", checked) }
                 }
             }
         }
-
-    components.ConfirmDialog {
-        id: autostartConfirm
-        title: "Xác nhận Autostart"
-        message: "Cho phép ứng dụng tự khởi động cùng hệ thống?\n(Hệ thống sẽ ghi file vào ~/.config/autostart)"
-        onConfirmed: {
-            autostartSwitch.suppressToggle = true;
-            autostartSwitch.checked = true;
-            autostartSwitch.suppressToggle = false;
-            sysBridge.updateSetting("autostart", true);
-        }
-        onCancelled: {
-            autostartSwitch.suppressToggle = true;
-            autostartSwitch.checked = false;
-            autostartSwitch.suppressToggle = false;
-            sysBridge.updateSetting("autostart", false);
-        }
     }
 
-        RowLayout {
-            Layout.fillWidth: true
-            Text { text: "Show temperature"; color: Theme.textSecondary; Layout.fillWidth: true }
-            Switch {
-                id: tempSwitch
-                onToggled: sysBridge.updateSetting("show_temperature", checked)
-            }
+    ConfirmDialog {
+        id: autostartConfirm
+        title: "Xác nhận tự khởi động"
+        message: "Cho phép ứng dụng tự khởi động cùng hệ thống?\n(Hệ thống sẽ ghi file vào ~/.config/autostart)"
+        onConfirmed: {
+            root.suppressAutostart = true
+            autostartToggle.checked = true
+            root.suppressAutostart = false
+            sysBridge.updateSetting("autostart", true)
         }
-
-        RowLayout {
-            Layout.fillWidth: true
-            Text { text: "Show network speed"; color: Theme.textSecondary; Layout.fillWidth: true }
-            Switch {
-                id: networkSwitch
-                onToggled: sysBridge.updateSetting("show_network_speed", checked)
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            Text { text: "Safe mode process kill"; color: Theme.textSecondary; Layout.fillWidth: true }
-            Switch {
-                id: safeModeSwitch
-                onToggled: sysBridge.updateSetting("safe_mode_process_kill", checked)
-            }
+        onCancelled: {
+            root.suppressAutostart = true
+            autostartToggle.checked = false
+            root.suppressAutostart = false
+            sysBridge.updateSetting("autostart", false)
         }
     }
 }

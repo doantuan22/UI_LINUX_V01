@@ -1,7 +1,7 @@
 import QtQuick
 import "../styles"
 
-GlassPanel {
+GlassCard {
     id: root
 
     property string label: "Action"
@@ -9,27 +9,32 @@ GlassPanel {
 
     signal clicked()
 
-    height: 42
-    radiusSize: 12
+    height: 34
+    hoverEnabled: true
+    clip: true
 
     Row {
+        id: contentRow
         anchors.centerIn: parent
-        spacing: 8
+        spacing: 6
         Text {
             text: root.iconGlyph
             color: Theme.textPrimary
-            font.pixelSize: 14
+            font.pixelSize: Metrics.fontBody
         }
         Text {
+            width: Math.max(0, root.width - 26)
             text: root.label
             color: Theme.textPrimary
-            font.pixelSize: 13
+            font.pixelSize: Metrics.fontBody
+            elide: Text.ElideRight
+            horizontalAlignment: Text.AlignHCenter
         }
     }
 
     MouseArea {
         anchors.fill: parent
-        hoverEnabled: true
+        hoverEnabled: false // Managed by GlassCard
         onClicked: root.clicked()
         onPressed: root.scale = 0.98
         onReleased: root.scale = 1.0

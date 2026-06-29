@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 import components
+import "panels"
 import styles
 
 Window {
@@ -144,7 +145,7 @@ Window {
                             font.bold: true
                         }
                         Text {
-                            text: "Monitor • Optimize • Protect"
+                            text: "Giám sát • Tối ưu • Bảo vệ"
                             color: Theme.textSecondary
                             font.pixelSize: 12
                         }
@@ -155,17 +156,22 @@ Window {
                         spacing: 8
                         
                         SystemActionButton {
-                            label: "Hide"
+                            label: "Thu gọn"
                             iconGlyph: "✕"
                             Layout.preferredWidth: 80
                             onClicked: dashboard.closePanel()
                         }
                         
                         SystemActionButton {
-                            label: "Quit"
+                            label: "Thoát"
                             iconGlyph: "⏻"
                             Layout.preferredWidth: 80
-                            onClicked: Qt.quit()
+                            onClicked: {
+                                if (sysBridge && sysBridge.quitApp)
+                                    sysBridge.quitApp()
+                                else
+                                    Qt.quit()
+                            }
                         }
                     }
                 }
@@ -192,7 +198,7 @@ Window {
 
                 // Power Profiles
                 Text {
-                    text: "Performance Mode"
+                    text: "Chế độ hiệu năng"
                     color: Theme.textSecondary
                     font.pixelSize: 12
                 }
@@ -203,19 +209,19 @@ Window {
                     PowerModeButton {
                         id: saverBtn
                         Layout.fillWidth: true
-                        label: "Power Saver"
+                        label: "Tiết kiệm pin"
                         onClicked: bridge.setPowerProfile("power-saver")
                     }
                     PowerModeButton {
                         id: balancedBtn
                         Layout.fillWidth: true
-                        label: "Balanced"
+                        label: "Cân bằng"
                         onClicked: bridge.setPowerProfile("balanced")
                     }
                     PowerModeButton {
                         id: perfBtn
                         Layout.fillWidth: true
-                        label: "Performance"
+                        label: "Hiệu năng cao"
                         onClicked: bridge.setPowerProfile("performance")
                     }
                 }
@@ -236,14 +242,14 @@ Window {
                     
                     SystemActionButton {
                         Layout.fillWidth: true
-                        label: "Tools"
+                        label: "Công cụ"
                         iconGlyph: "🔧"
                         opacity: activePanel === "tools" ? 1.0 : 0.6
                         onClicked: activePanel = "tools"
                     }
                     SystemActionButton {
                         Layout.fillWidth: true
-                        label: "Processes"
+                        label: "Tiến trình"
                         iconGlyph: "☰"
                         opacity: activePanel === "processes" ? 1.0 : 0.6
                         onClicked: {
@@ -253,7 +259,7 @@ Window {
                     }
                     SystemActionButton {
                         Layout.fillWidth: true
-                        label: "Settings"
+                        label: "Cài đặt"
                         iconGlyph: "⚙"
                         opacity: activePanel === "settings" ? 1.0 : 0.6
                         onClicked: activePanel = "settings"
@@ -270,8 +276,6 @@ Window {
                         anchors.fill: parent
                         visible: activePanel === "tools"
                         bridge: sysBridge
-                        checkPopup: checkResultPopup
-                        cleanPopup: cleanCacheDialog
                     }
 
                     ProcessPanel {
@@ -299,11 +303,11 @@ Window {
         id: killDialog
         property int pidToKill: 0
         property bool forceKill: false
-        title: forceKill ? "Force Kill Process?" : "Kill Process?"
+        title: forceKill ? "Buộc kết thúc tiến trình?" : "Kết thúc tiến trình?"
         message: forceKill
             ? "Process vẫn còn chạy. Gửi SIGKILL cho PID " + pidToKill + "?"
             : "Gửi SIGTERM tới PID " + pidToKill + "?"
-        confirmText: forceKill ? "Force Kill" : "Kill"
+        confirmText: forceKill ? "Buộc kết thúc" : "Kết thúc"
         onConfirmed: {
             var result = bridge.killProcess(pidToKill, forceKill)
             statusPopup.text = result.message || JSON.stringify(result)
@@ -319,12 +323,12 @@ Window {
 
     ConfirmDialog {
         id: cleanCacheDialog
-        title: "Clean Thumbnail Cache?"
+        title: "Dọn cache thumbnail?"
         message: {
             var info = bridge.getThumbnailCacheSize()
             return "Xóa thumbnail cache (" + (info.human || "0 B") + ")? Chỉ xóa ~/.cache/thumbnails."
         }
-        confirmText: "Clean"
+        confirmText: "Dọn dẹp"
         onConfirmed: {
             var result = bridge.cleanThumbnailCache()
             statusPopup.text = result.message || JSON.stringify(result)
@@ -345,7 +349,7 @@ Window {
             anchors.fill: parent
             anchors.margins: 16
             spacing: 10
-            Text { text: "System Check"; color: Theme.textPrimary; font.bold: true; font.pixelSize: 15 }
+            Text { text: "Kiểm tra hệ thống"; color: Theme.textPrimary; font.bold: true; font.pixelSize: 15 }
             ScrollView {
                 width: parent.width
                 height: parent.height - 50
@@ -360,7 +364,7 @@ Window {
             }
             SystemActionButton {
                 anchors.horizontalCenter: parent.horizontalCenter
-                label: "Close"
+                label: "Đóng"
                 iconGlyph: "✕"
                 onClicked: checkResultPopup.close()
             }

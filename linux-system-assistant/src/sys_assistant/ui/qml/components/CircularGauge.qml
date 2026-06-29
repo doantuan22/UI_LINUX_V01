@@ -8,10 +8,10 @@ Item {
     property int value: 0
     property string valueText: value + "%"
     property color accentColor: Theme.cpuAccent
-    property real lineWidth: 6
+    property real lineWidth: 5
 
-    width: 76
-    height: 76
+    width: 60
+    height: 60
 
     Shape {
         anchors.fill: parent
@@ -49,7 +49,7 @@ Item {
         anchors.centerIn: parent
         text: root.valueText
         color: Theme.textPrimary
-        font.pixelSize: 14
+        font.pixelSize: 12
         font.bold: true
     }
 

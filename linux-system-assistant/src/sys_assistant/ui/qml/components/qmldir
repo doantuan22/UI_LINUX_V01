@@ -8,5 +8,9 @@ PowerModeButton 1.0 PowerModeButton.qml
 ProcessRow 1.0 ProcessRow.qml
 SystemActionButton 1.0 SystemActionButton.qml
 ConfirmDialog 1.0 ConfirmDialog.qml
-SystemToolsPanel 1.0 SystemToolsPanel.qml
-ProcessPanel 1.0 ProcessPanel.qml
+GlowIcon 1.0 GlowIcon.qml
+PanelHeader 1.0 PanelHeader.qml
+QuickActionButton 1.0 QuickActionButton.qml
+ToggleSetting 1.0 ToggleSetting.qml
+ToolActionRow 1.0 ToolActionRow.qml
+NotificationCard 1.0 NotificationCard.qml

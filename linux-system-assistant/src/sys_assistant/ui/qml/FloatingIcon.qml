@@ -32,30 +32,67 @@ Window {
             bridge.saveIconPosition(Math.round(x), Math.round(y))
     }
 
+    function showDashboard() {
+        if (!dashboard)
+            return
+        savePosition()
+        dashboard.anchorPoint = Qt.point(iconWindow.x, iconWindow.y)
+        dashboard.openPanel()
+        iconWindow.visible = false
+    }
+
     property bool dragging: false
     property point dragStart: Qt.point(0, 0)
     property point windowStart: Qt.point(0, 0)
 
-    GlassPanel {
+    Item {
+        id: iconContent
         anchors.fill: parent
-        radiusSize: Metrics.iconSize / 2
-        opacity: dragging ? 0.8 : 1.0
 
-        Rectangle {
-            anchors.centerIn: parent
-            width: 28
-            height: 28
-            radius: 14
-            gradient: Gradient {
-                GradientStop { position: 0; color: Theme.cpuAccent }
-                GradientStop { position: 1; color: Theme.gpuAccent }
-            }
+        transform: Scale {
+            origin.x: iconContent.width / 2
+            origin.y: iconContent.height / 2
+            xScale: iconArea.containsMouse && !dragging ? 1.05 : (dragging ? 0.95 : 1.0)
+            yScale: iconArea.containsMouse && !dragging ? 1.05 : (dragging ? 0.95 : 1.0)
         }
 
-        Text {
-            anchors.centerIn: parent
-            text: "⚡"
-            font.pixelSize: 22
+        Behavior on transform {
+            ScaleAnimator { duration: 150; easing.type: Easing.OutQuad }
+        }
+
+        GlassPanel {
+            anchors.fill: parent
+            radiusSize: Metrics.iconSize / 2
+            opacity: dragging ? 0.8 : 1.0
+
+            // Add a stronger border for the floating icon
+            border.color: Theme.borderActive
+            border.width: 1
+
+            // Pulse effect
+            Rectangle {
+                anchors.centerIn: parent
+                width: parent.width - 2
+                height: parent.height - 2
+                radius: width / 2
+                color: "transparent"
+                border.color: Theme.accentPurple
+                border.width: 2
+                opacity: 0.3
+
+                SequentialAnimation on scale {
+                    loops: Animation.Infinite
+                    NumberAnimation { from: 0.8; to: 1.1; duration: 1500; easing.type: Easing.InOutQuad }
+                    NumberAnimation { from: 1.1; to: 0.8; duration: 1500; easing.type: Easing.InOutQuad }
+                }
+            }
+
+            GlowIcon {
+                anchors.centerIn: parent
+                iconText: "⚡"
+                iconSize: 26
+                color: Theme.accentBlue
+            }
         }
     }
 
@@ -92,30 +129,31 @@ Window {
         onReleased: function(mouse) {
             savePosition()
             if (mouse.button === Qt.LeftButton && !dragging && dashboard)
-                dashboard.togglePanel()
+                iconWindow.showDashboard()
         }
     }
 
     Menu {
         id: contextMenu
         MenuItem {
-            text: "Open Dashboard"
-            onTriggered: { if (dashboard) dashboard.openPanel() }
+            text: "Mở dashboard"
+            onTriggered: iconWindow.showDashboard()
         }
         MenuItem {
-            text: "Settings"
+            text: "Cài đặt"
             onTriggered: {
                 if (dashboard) {
-                    dashboard.openPanel()
-                    dashboard.settingsVisible = true
-                    dashboard.processesVisible = false
+                    iconWindow.showDashboard()
+                    if (dashboard.triggerFocus) dashboard.triggerFocus("miniSettings")
                 }
             }
         }
         MenuSeparator {}
         MenuItem {
-            text: "Quit"
-            onTriggered: Qt.quit()
+            text: "Thoát"
+            onTriggered: {
+                iconWindow.bridge.quitApp()
+            }
         }
     }
 

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
-from PySide6.QtCore import Property, QObject, Signal, Slot
+from PySide6.QtCore import Property, QCoreApplication, QObject, QTimer, Signal, Slot
+from PySide6.QtGui import QGuiApplication
 
 from sys_assistant.config.app_config import AppConfig
 from sys_assistant.core.monitor import SystemMonitor
@@ -19,6 +21,7 @@ class SysAssistantBridge(QObject):
     statsUpdated = Signal("QVariant")
     actionCompleted = Signal(str, "QVariant")
     processesUpdated = Signal("QVariant")
+    errorLogsUpdated = Signal("QVariant")
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -55,6 +58,7 @@ class SysAssistantBridge(QObject):
         stats["power_profile"] = self._cached_power_profile
         self._stats = stats
         self.statsUpdated.emit(stats)
+        self.errorLogsUpdated.emit(self.logger.recent_errors())
 
     @staticmethod
     def _default_stats() -> dict[str, Any]:
@@ -112,7 +116,10 @@ class SysAssistantBridge(QObject):
     @Slot(result="QVariant")
     def runSystemCheck(self):
         result = self.health_checker.run_system_check()
+        if result.get("status") in {"warning", "error"}:
+            self.logger.warning(f"System check finished with status={result.get('status')}")
         self.actionCompleted.emit("system_check", result)
+        self.errorLogsUpdated.emit(self.logger.recent_errors())
         return result
 
     @Slot(result="QVariant")
@@ -122,7 +129,10 @@ class SysAssistantBridge(QObject):
     @Slot(result="QVariant")
     def cleanThumbnailCache(self):
         result = self.cleanup_manager.clean_thumbnail_cache()
+        if not result.get("ok", False):
+            self.logger.warning(f"Cleanup failed: {result.get('message', 'unknown error')}")
         self.actionCompleted.emit("clean_cache", result)
+        self.errorLogsUpdated.emit(self.logger.recent_errors())
         return result
 
     @Slot(result="QVariant")
@@ -136,9 +146,12 @@ class SysAssistantBridge(QObject):
     def updateSetting(self, key: str, value):
         ALLOWED_SETTINGS = {
             "autostart", "update_interval_ms", "floating_icon", "theme",
-            "show_temperature", "show_network_speed", "safe_mode_process_kill"
+            "show_temperature", "show_network_speed", "safe_mode_process_kill",
+            "auto_hide"
         }
         if key not in ALLOWED_SETTINGS:
+            self.logger.warning(f"Rejected setting update: {key}")
+            self.errorLogsUpdated.emit(self.logger.recent_errors())
             return {"ok": False, "message": f"Cài đặt '{key}' không được phép thay đổi."}
 
         if key == "autostart":
@@ -185,3 +198,26 @@ class SysAssistantBridge(QObject):
     def getIconPosition(self):
         pos = self.config.get("floating_icon", {"x": 100, "y": 100})
         return pos
+
+    @Slot(result="QVariant")
+    def getErrorLogs(self):
+        return self.logger.recent_errors()
+
+    @Slot()
+    def clearErrorLogs(self):
+        self.logger.clear_recent_errors()
+        self.errorLogsUpdated.emit(self.logger.recent_errors())
+
+    @Slot(result=bool)
+    def quitApp(self) -> bool:
+        app = QCoreApplication.instance()
+        if app is None:
+            return False
+        self.logger.info("Application quit requested from UI")
+        self._polling.stop()
+        for window in QGuiApplication.topLevelWindows():
+            window.close()
+        QTimer.singleShot(0, app.quit)
+        QTimer.singleShot(250, lambda: QCoreApplication.exit(0))
+        QTimer.singleShot(1200, lambda: os._exit(0))
+        return True

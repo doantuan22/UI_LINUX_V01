@@ -1,42 +1,48 @@
-# Tổng Kết Sơ Bộ Project Linux System Assistant
+# TỔNG KẾT REFACTOR GIAO DIỆN (SKILL_UI)
 
-Tài liệu này tóm tắt ngắn gọn tình trạng hiện tại của dự án dựa trên kết quả hoàn thành từ Phase 1 đến Phase 6.
+Dưới đây là báo cáo tóm tắt các thay đổi cốt lõi sau khi hoàn tất chiến dịch nâng cấp giao diện Linux System Assistant sang phong cách **Glassmorphism**:
 
-## 1. Mục Tiêu Đã Đạt Được (Phase 1-6)
+## 1. Thay đổi Kiến trúc UI
+- **Chuyển đổi Layout:** Loại bỏ hoàn toàn giao diện nguyên khối (`DashboardWindow.qml` với 2 cột) để chuyển sang mô hình **Desktop Overlay** đa bảng điều khiển (`DesktopOverlay.qml`).
+- **Phân tách Panels:** Xây dựng 6 panel độc lập, chuyên biệt hóa chức năng nhằm tối ưu không gian và trải nghiệm:
+  - `MainMonitorPanel`: Tổng quan thông số hệ thống (CPU, RAM, GPU, Disk, Temp, Network) và chọn Power Mode.
+  - `SystemToolsPanel`: Danh sách các nút công cụ kiểm tra và dọn dẹp hệ thống.
+  - `ProcessPanel`: Bảng quản lý 5 tiến trình ngốn tài nguyên nhất (kèm tính năng Kill).
+  - `NotificationPanel`: Khung hiển thị thông báo trạng thái/cảnh báo.
+  - `QuickActionsPanel`: Lối tắt cho các thao tác nguồn (Restart, Lock, Logout, Shutdown).
+  - `MiniSettingsPanel`: Cài đặt nhanh (khởi động cùng OS, tự động ẩn, hiển thị nhiệt độ).
 
-Dự án đã chuyển mình thành công từ một bản MVP sơ khai thành một ứng dụng **Control Center** hoàn chỉnh, mượt mà và an toàn:
+## 2. Chuẩn hóa Design System (Glassmorphism)
+- **Base Components:** Xây dựng hệ thống component tái sử dụng cao (`GlassPanel`, `GlassCard`, `GlowIcon`, `PanelHeader`, `ToolActionRow`, `QuickActionButton`, `ToggleSetting`).
+- **Theme & Metrics:** Đồng bộ toàn bộ màu sắc, kích thước, độ bo góc (`radius: 22px` cho Panel, `14px` cho Card) và hiệu ứng blur/shadow thông qua `Theme.qml` và `Metrics.qml`. Bổ sung bộ màu nhấn (accent colors) dạng neon hiện đại.
 
-- **Giao diện & Trải nghiệm (UI/UX):**
-  - Khắc phục hoàn toàn lỗi giật lag khi kéo thả Floating Icon trên Wayland/X11.
-  - Đập đi xây lại Dashboard thành dạng 2 cột "Control Center" hiện đại (kính mờ - glassmorphism), không gian hiển thị rộng rãi, bố cục thông minh với các tab chuyển đổi (Tools, Processes, Settings).
-  - Tích hợp trạng thái phản hồi rõ ràng (loading, success, error) thay vì hiển thị dữ liệu thô.
+## 3. Tương tác & Trải nghiệm (UX/UI)
+- **Hiệu ứng (Animations):** Thêm hiệu ứng bung mở (scale) mượt mà khi bật overlay, hiệu ứng nổi bật (focus/glow) khi hover hoặc click vào các nút hành động.
+- **Tính phản hồi (Responsive):** Giao diện tự động thu nhỏ (`scale: 0.85`) nếu độ phân giải dọc của màn hình bị giới hạn.
 
-- **Giám sát Hệ thống (Monitor):**
-  - Theo dõi CPU, RAM, Disk, Nhiệt độ, Fan, Network, Battery theo thời gian thực.
-  - Tối ưu nhận diện GPU (phân biệt rõ NVIDIA, AMD/Intel) và xử lý an toàn (không crash) khi thiếu hụt bất kỳ cảm biến nào.
+## 4. Tích hợp Backend
+- **Data Binding:** Giữ nguyên và kết nối thành công 100% dữ liệu từ Python Backend (`SysAssistantBridge`) sang hệ thống Panel mới (cập nhật realtime các thông số phần cứng, danh sách tiến trình, cấu hình hệ thống).
+- **Tính an toàn:** Kế thừa toàn bộ các quy tắc bảo mật từ bản cũ, đảm bảo không có lệnh shell nguy hiểm nào được gọi trực tiếp từ UI.
 
-- **Quản lý Hệ thống (System Tools & Processes):**
-  - **Process Manager:** Tích hợp bộ lọc tìm kiếm, huy hiệu bảo vệ (protected badge) để ngăn kill nhầm tiến trình hệ thống, cảnh báo màu sắc khi tiêu thụ tài nguyên cao.
-  - **Cleanup & Check:** Chạy kiểm tra sức khỏe hệ thống (System Check) trực quan với icon trạng thái; dọn dẹp bộ nhớ đệm (Cache) an toàn có tính toán dung lượng.
-  - **Performance Mode:** Chuyển đổi linh hoạt các chế độ tiêu thụ điện năng.
+**Kết luận:** Hệ thống UI đã được lột xác hoàn toàn, mang lại diện mạo hiện đại, tinh tế của một Desktop Widget chuyên nghiệp trong khi vẫn giữ vững được tính ổn định và an toàn của logic xử lý lõi.
 
-- **Độ tin cậy & An toàn (Quality & Testing):**
-  - Bộ test suite vững chắc với **36/36 tests PASSED**.
-  - Kiểm soát nghiêm ngặt các lệnh thực thi (Whitelist/Timeout).
-  - Ngăn chặn triệt để hành động nguy hiểm (Kill PID 1, tự kill app, xóa nhầm thư mục ngoài giới hạn).
-  - Ghi log (Logging) đầy đủ cho mọi thao tác can thiệp hệ thống.
+## 5. Hướng Dẫn Kiểm Thử Nhanh (Dành Cho Tester)
 
-## 2. Trạng Thái Hiện Tại
+**Tổng quan chức năng chính:**
+- **Giám sát (Monitor):** Cập nhật realtime số liệu CPU, RAM, GPU, Disk, Nhiệt độ, và Network.
+- **Quản lý tiến trình:** Tự động lấy Top 5 tiến trình ngốn tài nguyên nhất, cho phép gửi tín hiệu `SIGTERM/SIGKILL` qua giao diện an toàn (có hộp thoại xác nhận).
+- **Tối ưu & Tiện ích:** Thay đổi chế độ tiêu thụ điện (Power Mode), dọn dẹp cache/log hệ thống.
+- **Thao tác nguồn:** Các phím tắt Restart, Shutdown, Lock Screen, Logout (hiện giao diện đang tạm khóa an toàn).
 
-- **Vận hành:** Ứng dụng chạy ổn định, không có lỗi cú pháp (QML/Python), logic backend và frontend tương tác tốt qua Bridge.
-- **Tiến độ:** Hoàn thành toàn bộ **Phase 1 đến Phase 6** theo như roadmap.
-- **Tính khả thi đóng gói (Packaging):** Dự án đã sẵn sàng cho giai đoạn tối ưu hóa cuối cùng và đóng gói (PyInstaller/Nuitka) để phân phối.
+**Các file & thư mục then chốt cần lưu ý:**
+- `run.sh`: Script mồi (entry point) để chạy app, tự động cấu hình môi trường `.venv` và biến môi trường.
+- `src/sys_assistant/bridge.py`: Trái tim của ứng dụng. Xử lý toàn bộ logic giao tiếp giữa Python Backend và QML Frontend (cấp dữ liệu, nhận lệnh từ UI).
+- `src/sys_assistant/ui/qml/DesktopOverlay.qml`: Khung xương chính của UI, nạp và sắp xếp toàn bộ 6 panels.
+- `src/sys_assistant/ui/qml/panels/`: Chứa mã nguồn của từng panel giao diện độc lập (MainMonitor, Process, SystemTools, v.v.).
 
-## 3. Kiến Trúc & Công Nghệ Cốt Lõi
-
-Hệ thống hiện tại được thiết kế theo mô hình phân tách rõ ràng giữa giao diện và logic xử lý, đảm bảo hiệu năng cao và dễ bảo trì:
-
-- **Frontend (Giao diện người dùng):** Được xây dựng hoàn toàn bằng **QML (Qt Quick / PySide6)**, tận dụng khả năng tăng tốc phần cứng (hardware acceleration) của GPU để render các hiệu ứng phức tạp (như glassmorphism, blur, shadow) một cách mượt mà mà không ăn mòn CPU. Cấu trúc component hóa linh hoạt giúp dễ dàng nâng cấp giao diện.
-- **Backend (Logic xử lý):** Viết bằng **Python 3**, đóng vai trò là "bộ não" thu thập số liệu phần cứng (thông qua `psutil`, `pynvml`, và fallback bằng `lspci`). Các thao tác can thiệp hệ thống như đổi profile điện năng hay dọn dẹp ổ đĩa được phân quyền và giới hạn cực kỳ khắt khe qua một lớp Command Manager (Whitelist).
-- **Cầu nối giao tiếp (The Bridge):** Dữ liệu được luân chuyển liên tục (polling) giữa Python Backend và QML Frontend qua cơ chế Signal-Slot (`QObject`), đảm bảo UI luôn phản hồi tức thì với các thay đổi dưới hệ thống (như tài nguyên CPU, RAM) mà không gây tắc nghẽn luồng chính.
-- **Triết lý thiết kế "Safety-First":** Xuyên suốt quá trình phát triển, dự án luôn đặt sự an toàn của Linux lên hàng đầu: Không giả lập thông số nếu thiếu cảm biến, cấm kill các tiến trình thiết yếu của hệ điều hành (PID 1, root processes), và cảnh báo rõ ràng người dùng mọi tác vụ có rủi ro.
+**Kịch bản kiểm thử (Test Cases) cơ bản:**
+1. **Khởi chạy:** Chạy `./run.sh` -> Icon sấm sét nổi (Floating Icon) hiện lên màn hình.
+2. **Trải nghiệm UI:** Click vào Floating Icon -> Giao diện Overlay hiện lên mượt mà (có hiệu ứng chuyển động). Click ra ngoài hoặc nút "X" -> Overlay thu gọn.
+3. **Độ chính xác dữ liệu:** Kiểm tra số liệu CPU/RAM trên giao diện có đồng bộ với hệ thống không (đối chiếu bằng lệnh `htop` hoặc `top`).
+4. **Tương tác Backend:** Click thử nút "Kết thúc" một tiến trình bất kỳ -> Dialog xác nhận (ConfirmDialog) phải xuất hiện trước khi thực thi.
+5. **Responsive:** Thử thay đổi độ phân giải dọc màn hình xuống thấp hơn 1000px -> Overlay phải tự động thu nhỏ lại (Scale 0.85) để không bị che khuất.

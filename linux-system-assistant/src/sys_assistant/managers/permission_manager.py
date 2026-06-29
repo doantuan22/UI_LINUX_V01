@@ -45,6 +45,9 @@ class PermissionManager:
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             return {"ok": False, "message": "Không thể xác định owner của process."}
 
+        if pid == 1:
+            return {"ok": False, "message": "Nghiêm cấm kill PID 1 (init/systemd)."}
+
         if owner == "root":
             return {"ok": False, "message": "Nghiêm cấm can thiệp tiến trình của root."}
 

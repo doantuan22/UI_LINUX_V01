@@ -1,0 +1,7 @@
+module panels
+MainMonitorPanel 1.0 MainMonitorPanel.qml
+SystemToolsPanel 1.0 SystemToolsPanel.qml
+ProcessPanel 1.0 ProcessPanel.qml
+NotificationPanel 1.0 NotificationPanel.qml
+QuickActionsPanel 1.0 QuickActionsPanel.qml
+MiniSettingsPanel 1.0 MiniSettingsPanel.qml
